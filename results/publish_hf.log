@@ -1,0 +1,10 @@
+=== NomaDamas/splade-cocondenser-ensembledistil-mlx
+  uploaded -> https://huggingface.co/NomaDamas/splade-cocondenser-ensembledistil-mlx
+=== NomaDamas/efficient-splade-V-large-query-mlx
+  uploaded -> https://huggingface.co/NomaDamas/efficient-splade-V-large-query-mlx
+=== NomaDamas/efficient-splade-V-large-doc-mlx
+  uploaded -> https://huggingface.co/NomaDamas/efficient-splade-V-large-doc-mlx
+=== NomaDamas/Splade_PP_en_v1-mlx
+Loading weights:   0%|          | 0/204 [00:00<?, ?it/s]Loading weights: 100%|██████████| 204/204 [00:00<00:00, 69434.23it/s]
+  uploaded -> https://huggingface.co/NomaDamas/Splade_PP_en_v1-mlx
+PUBLISH_HF_DONE

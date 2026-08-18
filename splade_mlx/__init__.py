@@ -14,6 +14,37 @@ from .models.bert import BertConfig, SpladeModel
 __all__ = ["load", "load_pair", "SpladeModel", "SpladePair"]
 
 
+def _resolve(model: str, dtype: str, out_dir: Path) -> Path:
+    """Return a local dir containing MLX-format weights.safetensors + config.json.
+
+    Accepts: (a) a local pre-converted dir, (b) an HF repo already in MLX
+    format (e.g. NomaDamas/*-mlx; stored dtype is used as-is), or (c) an
+    original HF checkpoint id, converted to `dtype` on first use and cached.
+    """
+    p = Path(model)
+    if p.is_dir() and (p / "config.json").exists():
+        return p
+
+    from huggingface_hub import hf_hub_download, snapshot_download
+
+    try:
+        cfg = json.loads(Path(hf_hub_download(model, "config.json")).read_text())
+    except Exception:
+        cfg = {}
+    if "bert" in cfg:  # already MLX format on the hub
+        return Path(snapshot_download(model))
+
+    model_name = model.split("/")[-1]
+    dest = out_dir / f"{model_name}-{dtype}"
+    if not (dest / "weights.safetensors").exists():
+        convert(model, out_dir=dest.parent, dtype=dtype)
+        # convert() writes to out_dir/model_name; move to dtype-suffixed dir
+        plain = dest.parent / model_name
+        if plain != dest:
+            plain.rename(dest)
+    return dest
+
+
 def load(
     hf_id: str,
     dtype: str = "float32",
@@ -27,22 +58,17 @@ def load(
     """
     from transformers import AutoTokenizer
 
-    model_name = hf_id.split("/")[-1]
-    dest = out_dir / f"{model_name}-{dtype}"
-    if not (dest / "weights.safetensors").exists():
-        convert(hf_id, out_dir=dest.parent, dtype=dtype)
-        # convert() writes to out_dir/model_name; move to dtype-suffixed dir
-        plain = dest.parent / model_name
-        if plain != dest:
-            plain.rename(dest)
-
+    dest = _resolve(hf_id, dtype, out_dir)
     config = json.loads((dest / "config.json").read_text())
     model = SpladeModel(BertConfig.from_hf(config["bert"]))
     model.load_weights(str(dest / "weights.safetensors"))
     if quantize_bits is not None:
         nn.quantize(model, group_size=64, bits=quantize_bits)
     mx.eval(model.parameters())
-    tokenizer = AutoTokenizer.from_pretrained(config["hf_id"])
+    try:  # self-contained MLX repos ship tokenizer files
+        tokenizer = AutoTokenizer.from_pretrained(dest)
+    except Exception:
+        tokenizer = AutoTokenizer.from_pretrained(config["hf_id"])
     return model, tokenizer
 
 
