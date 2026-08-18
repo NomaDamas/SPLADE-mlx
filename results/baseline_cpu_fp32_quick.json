@@ -1,0 +1,57 @@
+{
+  "backend": "cpu",
+  "dtype": "fp32",
+  "framework": "torch-2.13.0",
+  "machine": "macOS-26.5.1-arm64-arm-64bit",
+  "chip": "Apple M4 Max 16c/64GB",
+  "torch_num_threads": 12,
+  "protocol": {
+    "warmup": 3,
+    "min_iters": 3,
+    "max_iters": 3,
+    "target_seconds": 1.0,
+    "padding": "max_length",
+    "note": "latency excludes tokenization; tokenize_ms reported separately"
+  },
+  "models": {
+    "splade-cocondenser-ensembledistil": {
+      "hf_id": "naver/splade-cocondenser-ensembledistil",
+      "rss_after_load_mb": 928.989184,
+      "workloads": {
+        "query-L32-B1": {
+          "iters": 3,
+          "mean_ms": 19.37106961850077,
+          "p50_ms": 19.342499901540577,
+          "p95_ms": 21.687916945666075,
+          "min_ms": 17.082792008295655,
+          "tokenize_ms": 0.15067500062286854,
+          "throughput_seq_s": 51.62337546115305,
+          "throughput_tok_s": 1651.9480147568977,
+          "peak_rss_mb": 1330.46272
+        }
+      }
+    },
+    "efficient-splade-V-large-query": {
+      "hf_id": "naver/efficient-splade-V-large-query",
+      "rss_after_load_mb": 1258.749952,
+      "workloads": {
+        "query-L32-B1": {
+          "iters": 3,
+          "mean_ms": 10.305680722619096,
+          "p50_ms": 10.377750033512712,
+          "p95_ms": 10.546667035669088,
+          "min_ms": 9.99262509867549,
+          "tokenize_ms": 0.06297500804066658,
+          "throughput_seq_s": 97.03386189766017,
+          "throughput_tok_s": 3105.0835807251256,
+          "peak_rss_mb": 1431.420928
+        }
+      }
+    },
+    "efficient-splade-V-large-doc": {
+      "hf_id": "naver/efficient-splade-V-large-doc",
+      "rss_after_load_mb": 1100.529664,
+      "workloads": {}
+    }
+  }
+}

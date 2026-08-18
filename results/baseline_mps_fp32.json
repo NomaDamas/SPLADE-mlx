@@ -1,0 +1,276 @@
+{
+  "backend": "mps",
+  "dtype": "fp32",
+  "framework": "torch-2.13.0",
+  "machine": "macOS-26.5.1-arm64-arm-64bit",
+  "chip": "Apple M4 Max 16c/64GB",
+  "torch_num_threads": 12,
+  "protocol": {
+    "warmup": 3,
+    "min_iters": 12,
+    "max_iters": 50,
+    "target_seconds": 8.0,
+    "padding": "max_length",
+    "note": "latency excludes tokenization; tokenize_ms reported separately"
+  },
+  "models": {
+    "splade-cocondenser-ensembledistil": {
+      "hf_id": "naver/splade-cocondenser-ensembledistil",
+      "rss_after_load_mb": 357.777408,
+      "workloads": {
+        "query-L32-B1": {
+          "iters": 50,
+          "mean_ms": 7.154948282986879,
+          "p50_ms": 7.182916451711208,
+          "p95_ms": 7.722500013187528,
+          "min_ms": 6.227292004041374,
+          "tokenize_ms": 0.10687499307096004,
+          "throughput_seq_s": 139.7634141364532,
+          "throughput_tok_s": 4472.429252366503,
+          "peak_rss_mb": 495.69792,
+          "mps_driver_alloc_mb": 1093.369856
+        },
+        "query-L32-B8": {
+          "iters": 50,
+          "mean_ms": 19.566536599304527,
+          "p50_ms": 19.519583031069487,
+          "p95_ms": 20.56270802859217,
+          "min_ms": 18.575166002847254,
+          "tokenize_ms": 0.34890000242739916,
+          "throughput_seq_s": 408.86132092913937,
+          "throughput_tok_s": 13083.56226973246,
+          "peak_rss_mb": 501.219328,
+          "mps_driver_alloc_mb": 1101.774848
+        },
+        "query-L32-B32": {
+          "iters": 50,
+          "mean_ms": 60.01135912258178,
+          "p50_ms": 60.301333491224796,
+          "p95_ms": 61.8479170370847,
+          "min_ms": 57.28287494275719,
+          "tokenize_ms": 0.8013665908947587,
+          "throughput_seq_s": 533.2323824667164,
+          "throughput_tok_s": 17063.436238934926,
+          "peak_rss_mb": 504.725504,
+          "mps_driver_alloc_mb": 1105.969152
+        },
+        "doc-L128-B1": {
+          "iters": 50,
+          "mean_ms": 9.11205249838531,
+          "p50_ms": 9.157979453448206,
+          "p95_ms": 9.678249945864081,
+          "min_ms": 8.298125001601875,
+          "tokenize_ms": 0.85184162016958,
+          "throughput_seq_s": 109.74475840401533,
+          "throughput_tok_s": 14047.329075713962,
+          "peak_rss_mb": 547.2256,
+          "mps_driver_alloc_mb": 1105.969152
+        },
+        "doc-L128-B8": {
+          "iters": 50,
+          "mean_ms": 36.646836607251316,
+          "p50_ms": 36.727124941535294,
+          "p95_ms": 37.50770806800574,
+          "min_ms": 35.20024998579174,
+          "tokenize_ms": 1.7972000176087022,
+          "throughput_seq_s": 218.29987907925016,
+          "throughput_tok_s": 27942.38452214402,
+          "peak_rss_mb": 550.486016,
+          "mps_driver_alloc_mb": 1105.969152
+        },
+        "doc-L128-B32": {
+          "iters": 50,
+          "mean_ms": 130.13364340178668,
+          "p50_ms": 130.98862499464303,
+          "p95_ms": 133.5204589413479,
+          "min_ms": 126.50470808148384,
+          "tokenize_ms": 5.67713319323957,
+          "throughput_seq_s": 245.90105343627576,
+          "throughput_tok_s": 31475.334839843297,
+          "peak_rss_mb": 558.907392,
+          "mps_driver_alloc_mb": 3251.372032
+        },
+        "doc-L256-B1": {
+          "iters": 50,
+          "mean_ms": 12.424421696923673,
+          "p50_ms": 12.439041980542243,
+          "p95_ms": 13.115165987983346,
+          "min_ms": 11.522707995027304,
+          "tokenize_ms": 0.522099994122982,
+          "throughput_seq_s": 80.48664351497368,
+          "throughput_tok_s": 20604.58073983326,
+          "peak_rss_mb": 560.545792,
+          "mps_driver_alloc_mb": 3251.372032
+        },
+        "doc-L256-B8": {
+          "iters": 50,
+          "mean_ms": 61.328284128103405,
+          "p50_ms": 61.22081249486655,
+          "p95_ms": 63.72037506662309,
+          "min_ms": 59.38025005161762,
+          "tokenize_ms": 1.8046833807602525,
+          "throughput_seq_s": 130.4455214055799,
+          "throughput_tok_s": 33394.05347982846,
+          "peak_rss_mb": 563.183616,
+          "mps_driver_alloc_mb": 3251.372032
+        },
+        "doc-L256-B32": {
+          "iters": 35,
+          "mean_ms": 230.84550122397818,
+          "p50_ms": 232.25954198278487,
+          "p95_ms": 237.0851249434054,
+          "min_ms": 223.0992909753695,
+          "tokenize_ms": 6.710174982436001,
+          "throughput_seq_s": 138.62085173993472,
+          "throughput_tok_s": 35486.93804542329,
+          "peak_rss_mb": 569.376768,
+          "mps_driver_alloc_mb": 6252.412928
+        },
+        "doc-L256-B64": {
+          "iters": 18,
+          "mean_ms": 463.37720376646354,
+          "p50_ms": 463.8885004678741,
+          "p95_ms": 477.35974995885044,
+          "min_ms": 446.31520891562104,
+          "tokenize_ms": 11.832224996760488,
+          "throughput_seq_s": 138.11641893427114,
+          "throughput_tok_s": 35357.80324717341,
+          "peak_rss_mb": 576.028672,
+          "mps_driver_alloc_mb": 12258.67264
+        }
+      }
+    },
+    "efficient-splade-V-large-query": {
+      "hf_id": "naver/efficient-splade-V-large-query",
+      "rss_after_load_mb": 587.53024,
+      "workloads": {
+        "query-L32-B1": {
+          "iters": 50,
+          "mean_ms": 4.50595919508487,
+          "p50_ms": 4.423478967510164,
+          "p95_ms": 5.418917047791183,
+          "min_ms": 3.772708005271852,
+          "tokenize_ms": 0.0667500076815486,
+          "throughput_seq_s": 221.92833017458452,
+          "throughput_tok_s": 7101.7065655867045,
+          "peak_rss_mb": 587.546624,
+          "mps_driver_alloc_mb": 1101.758464
+        },
+        "query-L32-B8": {
+          "iters": 50,
+          "mean_ms": 14.9698741780594,
+          "p50_ms": 14.961208507884294,
+          "p95_ms": 15.641500009223819,
+          "min_ms": 14.02416592463851,
+          "tokenize_ms": 0.28684178832918406,
+          "throughput_seq_s": 534.4066292638051,
+          "throughput_tok_s": 17101.012136441765,
+          "peak_rss_mb": 587.644928,
+          "mps_driver_alloc_mb": 1110.163456
+        },
+        "query-L32-B32": {
+          "iters": 50,
+          "mean_ms": 50.2941333479248,
+          "p50_ms": 50.50795851275325,
+          "p95_ms": 51.986042060889304,
+          "min_ms": 48.32558403722942,
+          "tokenize_ms": 0.7077249931171536,
+          "throughput_seq_s": 636.257111314164,
+          "throughput_tok_s": 20360.22756205325,
+          "peak_rss_mb": 587.907072,
+          "mps_driver_alloc_mb": 1110.163456
+        }
+      }
+    },
+    "efficient-splade-V-large-doc": {
+      "hf_id": "naver/efficient-splade-V-large-doc",
+      "rss_after_load_mb": 588.382208,
+      "workloads": {
+        "doc-L128-B1": {
+          "iters": 50,
+          "mean_ms": 6.5557699906639755,
+          "p50_ms": 6.56283344142139,
+          "p95_ms": 7.4653750052675605,
+          "min_ms": 5.528250010684133,
+          "tokenize_ms": 0.50245001912117,
+          "throughput_seq_s": 152.53738331639042,
+          "throughput_tok_s": 19524.785064497974,
+          "peak_rss_mb": 588.382208,
+          "mps_driver_alloc_mb": 1093.353472
+        },
+        "doc-L128-B8": {
+          "iters": 50,
+          "mean_ms": 26.784875893499702,
+          "p50_ms": 26.607541949488223,
+          "p95_ms": 28.512708959169686,
+          "min_ms": 25.421208003535867,
+          "tokenize_ms": 1.5222084010019898,
+          "throughput_seq_s": 298.6760152187781,
+          "throughput_tok_s": 38230.5299480036,
+          "peak_rss_mb": 588.414976,
+          "mps_driver_alloc_mb": 1093.353472
+        },
+        "doc-L128-B32": {
+          "iters": 50,
+          "mean_ms": 95.38253335747868,
+          "p50_ms": 95.92408349271864,
+          "p95_ms": 98.07341697160155,
+          "min_ms": 92.60604192968458,
+          "tokenize_ms": 4.489883198402822,
+          "throughput_seq_s": 335.4911939701691,
+          "throughput_tok_s": 42942.872828181644,
+          "peak_rss_mb": 588.627968,
+          "mps_driver_alloc_mb": 3247.161344
+        },
+        "doc-L256-B1": {
+          "iters": 50,
+          "mean_ms": 8.278865881729871,
+          "p50_ms": 8.362812455743551,
+          "p95_ms": 8.988708956167102,
+          "min_ms": 7.244708016514778,
+          "tokenize_ms": 0.4509917926043272,
+          "throughput_seq_s": 120.78949149385782,
+          "throughput_tok_s": 30922.109822427603,
+          "peak_rss_mb": 588.627968,
+          "mps_driver_alloc_mb": 3257.647104
+        },
+        "doc-L256-B8": {
+          "iters": 50,
+          "mean_ms": 42.75290419580415,
+          "p50_ms": 42.50202147522941,
+          "p95_ms": 45.465625007636845,
+          "min_ms": 40.48145795240998,
+          "tokenize_ms": 2.407183195464313,
+          "throughput_seq_s": 187.12179091649017,
+          "throughput_tok_s": 47903.17847462148,
+          "peak_rss_mb": 588.627968,
+          "mps_driver_alloc_mb": 3257.647104
+        },
+        "doc-L256-B32": {
+          "iters": 50,
+          "mean_ms": 158.4376400266774,
+          "p50_ms": 158.62108347937465,
+          "p95_ms": 163.79316698294133,
+          "min_ms": 152.74250006768852,
+          "tokenize_ms": 5.369383399374783,
+          "throughput_seq_s": 201.97220808522462,
+          "throughput_tok_s": 51704.8852698175,
+          "peak_rss_mb": 588.791808,
+          "mps_driver_alloc_mb": 6256.590848
+        },
+        "doc-L256-B64": {
+          "iters": 26,
+          "mean_ms": 318.8751970480483,
+          "p50_ms": 319.78889554739,
+          "p95_ms": 330.8175830170512,
+          "min_ms": 306.1654579360038,
+          "tokenize_ms": 11.26961661502719,
+          "throughput_seq_s": 200.70548161936986,
+          "throughput_tok_s": 51380.603294558685,
+          "peak_rss_mb": 589.283328,
+          "mps_driver_alloc_mb": 12258.656256
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,92 @@
+=== reference: splade-cocondenser-ensembledistil ===
+Loading weights:   0%|          | 0/204 [00:00<?, ?it/s]Loading weights: 100%|██████████| 204/204 [00:00<00:00, 50075.38it/s]
+  seq_len=256  active terms/vec: mean 114.6  max 265
+=== reference: efficient-splade-V-large-query ===
+Loading weights:   0%|          | 0/106 [00:00<?, ?it/s]Loading weights: 100%|██████████| 106/106 [00:00<00:00, 56320.78it/s]
+  seq_len=256  active terms/vec: mean 18.8  max 48
+=== reference: efficient-splade-V-large-doc ===
+Loading weights:   0%|          | 0/106 [00:00<?, ?it/s]Loading weights: 100%|██████████| 106/106 [00:00<00:00, 87899.61it/s]
+  seq_len=256  active terms/vec: mean 148.9  max 336
+references written to /Users/jeffrey/Projects/SPLADE-mlx/data/reference
+=== splade-cocondenser-ensembledistil [cpu/fp32] ===
+Loading weights:   0%|          | 0/204 [00:00<?, ?it/s]Loading weights: 100%|██████████| 204/204 [00:00<00:00, 66169.52it/s]
+  query-L32-B1     mean    14.92 ms  p50    14.89  p95    15.27      67.0 seq/s
+  query-L32-B8     mean    36.23 ms  p50    36.39  p95    37.29     220.8 seq/s
+  query-L32-B32    mean   108.80 ms  p50   108.18  p95   116.58     294.1 seq/s
+  doc-L128-B1      mean    26.51 ms  p50    26.50  p95    27.69      37.7 seq/s
+  doc-L128-B8      mean   110.04 ms  p50   110.07  p95   113.12      72.7 seq/s
+  doc-L128-B32     mean   414.98 ms  p50   414.77  p95   430.61      77.1 seq/s
+  doc-L256-B1      mean    40.41 ms  p50    40.49  p95    41.80      24.7 seq/s
+  doc-L256-B8      mean   213.37 ms  p50   213.46  p95   216.37      37.5 seq/s
+  doc-L256-B32     mean   822.96 ms  p50   820.79  p95   836.83      38.9 seq/s
+  doc-L256-B64     mean  1600.12 ms  p50  1596.68  p95  1631.22      40.0 seq/s
+=== efficient-splade-V-large-query [cpu/fp32] ===
+Loading weights:   0%|          | 0/106 [00:00<?, ?it/s]Loading weights: 100%|██████████| 106/106 [00:00<00:00, 46288.00it/s]
+  query-L32-B1     mean     8.94 ms  p50     8.91  p95     9.52     111.9 seq/s
+  query-L32-B8     mean    23.10 ms  p50    23.09  p95    23.57     346.3 seq/s
+  query-L32-B32    mean    68.69 ms  p50    68.76  p95    69.80     465.8 seq/s
+=== efficient-splade-V-large-doc [cpu/fp32] ===
+Loading weights:   0%|          | 0/106 [00:00<?, ?it/s]Loading weights: 100%|██████████| 106/106 [00:00<00:00, 41473.53it/s]
+  doc-L128-B1      mean    16.66 ms  p50    16.73  p95    17.30      60.0 seq/s
+  doc-L128-B8      mean    76.42 ms  p50    75.48  p95    83.13     104.7 seq/s
+  doc-L128-B32     mean   267.09 ms  p50   265.87  p95   278.63     119.8 seq/s
+  doc-L256-B1      mean    24.52 ms  p50    23.81  p95    30.00      40.8 seq/s
+  doc-L256-B8      mean   138.34 ms  p50   137.80  p95   146.42      57.8 seq/s
+  doc-L256-B32     mean   517.95 ms  p50   515.02  p95   530.08      61.8 seq/s
+  doc-L256-B64     mean  1032.40 ms  p50  1031.82  p95  1062.38      62.0 seq/s
+wrote /Users/jeffrey/Projects/SPLADE-mlx/results/baseline_cpu_fp32.json
+=== splade-cocondenser-ensembledistil [mps/fp32] ===
+Loading weights:   0%|          | 0/204 [00:00<?, ?it/s]Loading weights: 100%|██████████| 204/204 [00:00<00:00, 59127.77it/s]
+  query-L32-B1     mean     7.15 ms  p50     7.18  p95     7.72     139.8 seq/s
+  query-L32-B8     mean    19.57 ms  p50    19.52  p95    20.56     408.9 seq/s
+  query-L32-B32    mean    60.01 ms  p50    60.30  p95    61.85     533.2 seq/s
+  doc-L128-B1      mean     9.11 ms  p50     9.16  p95     9.68     109.7 seq/s
+  doc-L128-B8      mean    36.65 ms  p50    36.73  p95    37.51     218.3 seq/s
+  doc-L128-B32     mean   130.13 ms  p50   130.99  p95   133.52     245.9 seq/s
+  doc-L256-B1      mean    12.42 ms  p50    12.44  p95    13.12      80.5 seq/s
+  doc-L256-B8      mean    61.33 ms  p50    61.22  p95    63.72     130.4 seq/s
+  doc-L256-B32     mean   230.85 ms  p50   232.26  p95   237.09     138.6 seq/s
+  doc-L256-B64     mean   463.38 ms  p50   463.89  p95   477.36     138.1 seq/s
+=== efficient-splade-V-large-query [mps/fp32] ===
+Loading weights:   0%|          | 0/106 [00:00<?, ?it/s]Loading weights: 100%|██████████| 106/106 [00:00<00:00, 69872.11it/s]
+  query-L32-B1     mean     4.51 ms  p50     4.42  p95     5.42     221.9 seq/s
+  query-L32-B8     mean    14.97 ms  p50    14.96  p95    15.64     534.4 seq/s
+  query-L32-B32    mean    50.29 ms  p50    50.51  p95    51.99     636.3 seq/s
+=== efficient-splade-V-large-doc [mps/fp32] ===
+Loading weights:   0%|          | 0/106 [00:00<?, ?it/s]Loading weights: 100%|██████████| 106/106 [00:00<00:00, 65768.67it/s]
+  doc-L128-B1      mean     6.56 ms  p50     6.56  p95     7.47     152.5 seq/s
+  doc-L128-B8      mean    26.78 ms  p50    26.61  p95    28.51     298.7 seq/s
+  doc-L128-B32     mean    95.38 ms  p50    95.92  p95    98.07     335.5 seq/s
+  doc-L256-B1      mean     8.28 ms  p50     8.36  p95     8.99     120.8 seq/s
+  doc-L256-B8      mean    42.75 ms  p50    42.50  p95    45.47     187.1 seq/s
+  doc-L256-B32     mean   158.44 ms  p50   158.62  p95   163.79     202.0 seq/s
+  doc-L256-B64     mean   318.88 ms  p50   319.79  p95   330.82     200.7 seq/s
+wrote /Users/jeffrey/Projects/SPLADE-mlx/results/baseline_mps_fp32.json
+=== splade-cocondenser-ensembledistil [mps/fp16] ===
+Loading weights:   0%|          | 0/204 [00:00<?, ?it/s]Loading weights: 100%|██████████| 204/204 [00:00<00:00, 2411.23it/s]
+  query-L32-B1     mean     6.77 ms  p50     6.78  p95     7.49     147.7 seq/s
+  query-L32-B8     mean    18.65 ms  p50    18.59  p95    19.89     429.0 seq/s
+  query-L32-B32    mean    57.21 ms  p50    57.20  p95    59.31     559.4 seq/s
+  doc-L128-B1      mean     8.86 ms  p50     8.79  p95     9.84     112.8 seq/s
+  doc-L128-B8      mean    33.55 ms  p50    33.32  p95    34.90     238.5 seq/s
+  doc-L128-B32     mean   115.35 ms  p50   115.38  p95   118.18     277.4 seq/s
+  doc-L256-B1      mean    11.35 ms  p50    11.33  p95    12.06      88.1 seq/s
+  doc-L256-B8      mean    53.80 ms  p50    53.71  p95    55.63     148.7 seq/s
+  doc-L256-B32     mean   197.83 ms  p50   198.69  p95   201.60     161.8 seq/s
+  doc-L256-B64     mean   393.32 ms  p50   395.42  p95   400.10     162.7 seq/s
+=== efficient-splade-V-large-query [mps/fp16] ===
+Loading weights:   0%|          | 0/106 [00:00<?, ?it/s]Loading weights: 100%|██████████| 106/106 [00:00<00:00, 2010.47it/s]
+  query-L32-B1     mean     4.65 ms  p50     4.64  p95     5.40     215.0 seq/s
+  query-L32-B8     mean    14.94 ms  p50    14.98  p95    15.63     535.5 seq/s
+  query-L32-B32    mean    49.41 ms  p50    48.53  p95    60.26     647.6 seq/s
+=== efficient-splade-V-large-doc [mps/fp16] ===
+Loading weights:   0%|          | 0/106 [00:00<?, ?it/s]Loading weights:   4%|▍         | 4/106 [00:00<00:03, 26.90it/s]Loading weights: 100%|██████████| 106/106 [00:00<00:00, 706.97it/s]
+  doc-L128-B1      mean     6.17 ms  p50     6.12  p95     6.65     162.1 seq/s
+  doc-L128-B8      mean    24.42 ms  p50    24.41  p95    25.35     327.6 seq/s
+  doc-L128-B32     mean    85.89 ms  p50    86.12  p95    88.30     372.6 seq/s
+  doc-L256-B1      mean     7.46 ms  p50     7.47  p95     8.17     134.0 seq/s
+  doc-L256-B8      mean    37.56 ms  p50    37.67  p95    39.01     213.0 seq/s
+  doc-L256-B32     mean   137.74 ms  p50   138.64  p95   141.54     232.3 seq/s
+  doc-L256-B64     mean   273.49 ms  p50   273.89  p95   285.29     234.0 seq/s
+wrote /Users/jeffrey/Projects/SPLADE-mlx/results/baseline_mps_fp16.json
+BASELINE_CHAIN_DONE

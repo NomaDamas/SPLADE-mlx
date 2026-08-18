@@ -1,0 +1,23 @@
+[project]
+name = "splade-mlx"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "huggingface-hub>=1.27.0",
+    "mlx>=0.32.1",
+    "numpy>=2.5.2",
+    "psutil>=7.2.2",
+    "pyarrow>=25.0.1",
+    "safetensors>=0.8.0",
+    "tokenizers>=0.22.2",
+    "torch>=2.13.0",
+    "transformers>=5.15.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
