@@ -1,16 +1,59 @@
 # SPLADE-mlx
 
-**SPLADE sparse retrieval models, natively on Apple Silicon with [MLX](https://github.com/ml-explore/mlx).**
+**SPLADE sparse retrieval models — text *and* visual — natively on Apple Silicon with [MLX](https://github.com/ml-explore/mlx).**
 
-> **V-SPLADE (visual) port landed**: this repository now includes an MLX port of
-> NAVER's inference-free **multimodal** sparse retriever for **visual document
-> retrieval** ([arXiv:2605.30917](https://arxiv.org/abs/2605.30917),
-> `naver/v-splade-{efficient,quality}`, ModernVBERT backbone, Apache-2.0):
-> SigLIP vision tower + pixel-shuffle connector + ModernBERT encoder + SPLADE head,
-> with an inference-free static query lookup. fp32 parity vs PyTorch: max logit delta
-> 1.5e-04 (efficient) / 6.4e-04 (quality), cosine 1.000000; ViDoRe `docvqa` nDCG@5
-> identical to the torch fp32 reference (see [REPORT.md](REPORT.md)).
-> API: `splade_mlx.convert_vsplade.load_vsplade` (full docs ship with the next update).
+Includes the first MLX port of **V-SPLADE** ([arXiv:2605.30917](https://arxiv.org/abs/2605.30917)):
+NAVER's inference-free **multimodal** sparse retriever for **visual document retrieval**
+— retrieving rendered document pages (PDFs, slides, scans) from text queries.
+
+![V-SPLADE document-page encoding: PyTorch vs MLX on Apple M4 Max](assets/vsplade_latency.png)
+
+![ViDoRe nDCG@5 parity](assets/vsplade_quality.png)
+
+*Measured on an Apple M4 Max (12P+4E, 64 GB). V-SPLADE document encoding is 1.17–1.19x
+faster in MLX at matched precision, and **fp32 reproduces the PyTorch ViDoRe nDCG@5
+to the last floating-point digit** (Δ = 0.0000, both variants). Queries are
+inference-free: a static vocabulary lookup (~6 µs) — no neural encoding at all.*
+
+## V-SPLADE (visual document retrieval) — naver/v-splade-{efficient,quality}
+
+| MLX weights | Upstream | fp32 parity (max logit Δ) | ViDoRe docvqa nDCG@5 (fp32) | License |
+|---|---|---|---|---|
+| [NomaDamas/v-splade-efficient-mlx](https://huggingface.co/NomaDamas/v-splade-efficient-mlx) | [naver/v-splade-efficient](https://huggingface.co/naver/v-splade-efficient) | 1.5e-04 | 0.4098 (= torch, Δ +0.0000) | **Apache-2.0** |
+| [NomaDamas/v-splade-quality-mlx](https://huggingface.co/NomaDamas/v-splade-quality-mlx) | [naver/v-splade-quality](https://huggingface.co/naver/v-splade-quality) | 6.4e-04 | 0.4331 (= torch, Δ +0.0000) | **Apache-2.0** |
+
+Architecture ported to MLX: SigLIP vision tower (12L) → pixel-shuffle (×4) connector
+→ ModernBERT text encoder (22L, GeGLU, RoPE, alternating global / sliding-128 attention)
+→ SPLADE MLM head (`hidden^-0.25` logit scale, special tokens zeroed,
+log1p·relu max-pool). Queries: the inference-free Li-LSR lookup table
+(`softplus(embedding @ projection)`, specials zeroed, scatter-add for repeated
+tokens), which matches the shipped Sentence Transformers static embedding to 1.2e-07.
+
+```python
+import mlx.core as mx
+from PIL import Image
+from splade_mlx.convert_vsplade import load_vsplade
+
+model, query_encoder, processor = load_vsplade("NomaDamas/v-splade-quality-mlx")
+
+# documents: page images
+enc = processor(text=["User:<image><end_of_utterance>\nAssistant:"],
+                images=[[Image.open("page.png")]], return_tensors="np")
+d = model.encode(mx.array(enc["input_ids"]), mx.array(enc["attention_mask"]),
+                 enc["pixel_values"].astype("float32"))  # (1, 50368) sparse
+
+# queries: no neural network, just a lookup
+q = processor.tokenizer(["total revenue in 2023"], return_tensors="np")
+qw = query_encoder.encode(q["input_ids"], q["attention_mask"])  # (1, 50368)
+
+score = d @ qw.T  # sparse dot product — inverted-index compatible
+```
+
+Note on half precision: MLX bf16 stays within the ±0.002 nDCG gate for `efficient`
+(+0.0002) but lands just outside it for `quality` (−0.0024). Use fp32 for exact parity;
+bf16 only when the small speed gain matters more than the last 0.2pp of nDCG.
+
+## Text SPLADE (naver/splade-v3 family, splade-cocondenser, ...)
 
 ![Inference latency: PyTorch vs MLX on Apple M4 Max](assets/latency_m4max.png)
 

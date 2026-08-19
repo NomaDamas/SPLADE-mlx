@@ -1,0 +1,15 @@
+  pages-B1  mean   446.42 ms  p50   446.49    2.24 pages/s
+  pages-B4  mean  1734.87 ms  p50  1734.05    2.31 pages/s
+  pages-B8  mean  3454.50 ms  p50  3452.38    2.32 pages/s
+wrote /Users/jeffrey/Projects/SPLADE-mlx/results/vsplade_torch_fp32.json
+  pages-B1  mean   383.39 ms  p50   383.19    2.61 pages/s
+  pages-B4  mean  1515.57 ms  p50  1517.38    2.64 pages/s
+  pages-B8  mean  3028.73 ms  p50  3025.51    2.64 pages/s
+  query lookup  5.8 us/query
+wrote /Users/jeffrey/Projects/SPLADE-mlx/results/vsplade_mlx_float32.json
+  pages-B1  mean   376.19 ms  p50   376.59    2.66 pages/s
+  pages-B4  mean  1480.25 ms  p50  1479.85    2.70 pages/s
+  pages-B8  mean  2957.54 ms  p50  2958.62    2.70 pages/s
+  query lookup  5.7 us/query
+wrote /Users/jeffrey/Projects/SPLADE-mlx/results/vsplade_mlx_bfloat16.json
+VSPLADE_BENCH_DONE

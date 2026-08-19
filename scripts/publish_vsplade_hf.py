@@ -98,7 +98,7 @@ This repository is not affiliated with or endorsed by NAVER.
 
 
 def main() -> None:
-    from huggingface_hub import HfApi, snapshot_download
+    from huggingface_hub import HfApi
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", choices=VARIANTS, default=None)
@@ -131,16 +131,20 @@ def main() -> None:
         staging.mkdir(parents=True, exist_ok=True)
         for name in ("weights.safetensors", "query_lookup.npy", "config.json"):
             shutil.copy(dest / name, staging / name)
-        # tokenizer + processor configs for self-contained loading
-        src_files = snapshot_download(
-            src,
-            allow_patterns=[
-                "tokenizer*", "special_tokens_map.json", "preprocessor_config.json",
-                "processor_config.json", "chat_template.jinja",
-            ],
-        )
-        for f in Path(src_files).iterdir():
-            shutil.copy(f, staging / f.name)
+        # tokenizer + processor configs for self-contained loading.
+        # Copy explicit filenames only -- iterating the HF snapshot dir would
+        # also pick up previously cached files (e.g. the original weights).
+        from huggingface_hub import hf_hub_download
+
+        for name in (
+            "tokenizer.json",
+            "tokenizer_config.json",
+            "special_tokens_map.json",
+            "preprocessor_config.json",
+            "processor_config.json",
+            "chat_template.jinja",
+        ):
+            shutil.copy(hf_hub_download(src, name), staging / name)
         s = stats[variant]
         (staging / "README.md").write_text(
             CARD.format(

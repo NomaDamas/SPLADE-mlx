@@ -1,0 +1,11 @@
+### vidore/docvqa_test_subsampled: 500 pages, 500 queries [naver/v-splade-efficient]
+  torch-mps-fp32   nDCG@5 0.4098  [236s]
+  mlx-float32      nDCG@5 0.4098 (delta +0.0000)  [223s]
+  mlx-bfloat16     nDCG@5 0.4100 (delta +0.0002)  [201s]
+EVAL_VIDORE_DONE
+### vidore/docvqa_test_subsampled: 500 pages, 500 queries [naver/v-splade-quality]
+  torch-mps-fp32   nDCG@5 0.4331  [217s]
+  mlx-float32      nDCG@5 0.4331 (delta +0.0000)  [205s]
+  mlx-bfloat16     nDCG@5 0.4307 (delta -0.0024)  [200s]
+EVAL_VIDORE_DONE
+VIDORE_CHAIN_DONE

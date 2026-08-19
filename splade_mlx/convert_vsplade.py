@@ -16,6 +16,8 @@ import json
 import re
 from pathlib import Path
 
+import shutil
+
 import mlx.core as mx
 import numpy as np
 
@@ -119,22 +121,48 @@ def convert_vsplade(hf_id: str, out_dir: Path = DEFAULT_OUT_DIR, dtype: str = "f
 
 
 def load_vsplade(hf_id_or_dir: str, dtype: str = "float32", out_dir: Path = DEFAULT_OUT_DIR):
-    """Returns (doc_model, query_encoder, processor)."""
+    """Returns (doc_model, query_encoder, processor).
+
+    Accepts a local converted dir, a pre-converted MLX hub repo (e.g.
+    NomaDamas/*-mlx; loaded directly), or an original HF checkpoint id
+    (converted to `dtype` on first use and cached).
+    """
+    from huggingface_hub import hf_hub_download
     from transformers import AutoProcessor
 
     from .models.modernvbert import VSpladeConfig, VSpladeModel, VSpladeQueryEncoder
 
     p = Path(hf_id_or_dir)
-    dest = p if p.is_dir() else out_dir / f"{hf_id_or_dir.split('/')[-1]}-{dtype}"
-    if not (dest / "weights.safetensors").exists():
-        dest = convert_vsplade(hf_id_or_dir, out_dir=out_dir, dtype=dtype)
+    if p.is_dir() and (p / "config.json").exists():
+        dest = p
+    else:
+        try:  # pre-converted MLX repo on the hub?
+            cfg = json.loads(
+                Path(hf_hub_download(hf_id_or_dir, "config.json")).read_text()
+            )
+        except Exception:
+            cfg = {}
+        if "vsplade" in cfg:
+            dest = out_dir / f"hub-{hf_id_or_dir.split('/')[-1]}"
+            dest.mkdir(parents=True, exist_ok=True)
+            for name in ("weights.safetensors", "query_lookup.npy"):
+                if not (dest / name).exists():
+                    shutil.copy(hf_hub_download(hf_id_or_dir, name), dest / name)
+            (dest / "config.json").write_text(json.dumps(cfg))
+        else:  # original checkpoint -> convert
+            dest = out_dir / f"{hf_id_or_dir.split('/')[-1]}-{dtype}"
+            if not (dest / "weights.safetensors").exists():
+                dest = convert_vsplade(hf_id_or_dir, out_dir=out_dir, dtype=dtype)
 
     config = json.loads((dest / "config.json").read_text())
     model = VSpladeModel(VSpladeConfig.from_hf(config["vsplade"]))
     model.load_weights(str(dest / "weights.safetensors"))
     mx.eval(model.parameters())
     query = VSpladeQueryEncoder(np.load(dest / "query_lookup.npy"))
-    processor = AutoProcessor.from_pretrained(config["hf_id"])
+    try:  # self-contained MLX repos ship processor configs
+        processor = AutoProcessor.from_pretrained(hf_id_or_dir)
+    except Exception:
+        processor = AutoProcessor.from_pretrained(config["hf_id"])
     return model, query, processor
 
 

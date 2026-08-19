@@ -4,9 +4,58 @@
 > `naver/efficient-splade-V-large` pair "V-SPLADE". That was wrong — **V-SPLADE**
 > ([arXiv:2605.30917](https://arxiv.org/abs/2605.30917)) is NAVER's multimodal
 > inference-free sparse retriever for *visual document retrieval*. The models measured
-> here are the text-only **Efficient-SPLADE** checkpoints (SIGIR'22 efficiency study);
-> all measurements remain valid for those models. The actual V-SPLADE MLX port is
-> tracked separately.
+> in §2–§5 are the text-only **Efficient-SPLADE** checkpoints (SIGIR'22 efficiency
+> study); all measurements remain valid for those models. The actual V-SPLADE MLX
+> port and its visual-document benchmark results are in **§8**.
+
+## 8. V-SPLADE (visual document retrieval) — the actual V-SPLADE
+
+`naver/v-splade-{efficient,quality}` ([arXiv:2605.30917](https://arxiv.org/abs/2605.30917))
+ported to MLX, measured on the same M4 Max.
+
+**Architecture**: SigLIP vision tower (12L, 512px, patch 16) → pixel-shuffle ×4
+connector → ModernBERT text encoder (22L, 768d, GeGLU, RoPE θ=160k, alternating
+global / sliding-128 attention) → SPLADE MLM head (`hidden^-0.25` scale, special
+tokens zeroed, log1p·relu max-pool) → 50,368-dim sparse vectors. Queries are
+inference-free: a static per-token lookup (Li-LSR, softplus).
+
+**Numeric parity** (fp32, real document-page inputs, 17 tiles, seq 1129):
+
+| gate | efficient | quality |
+|---|---|---|
+| max \|MLM-logit Δ\| (< 1e-3) | **1.5e-04** | **6.4e-04** |
+| sparse-vector cosine (≥ 0.9999) | 1.000000 | 1.000000 |
+| top-64 term overlap (≥ 99%) | 100% | 100% |
+| query lookup vs shipped ST table | 1.2e-07 | 1.2e-07 |
+
+**Retrieval-quality parity — ViDoRe `docvqa_test_subsampled`** (500 pages, 500 queries,
+binary relevance, nDCG@5; queries are backend-independent by construction):
+
+| model | torch MPS fp32 | MLX fp32 | MLX bf16 |
+|---|---|---|---|
+| v-splade-efficient | 0.4098 | **0.4098 (Δ +0.0000, bit-exact)** | 0.4100 (+0.0002) |
+| v-splade-quality | 0.4331 | **0.4331 (Δ +0.0000, bit-exact)** | 0.4307 (−0.0024) |
+
+MLX fp32 reproduces the PyTorch ranking to the last floating-point digit on both
+variants. bf16 passes the ±0.002 gate for `efficient` and misses it narrowly for
+`quality` — fp32 is the default; bf16 is a deliberate trade-off.
+
+**Latency** (document-page encoding: vision+text+SPLADE head; preprocessing ~39 ms/page
+on CPU measured separately; matched precision):
+
+| batch (pages) | torch MPS fp32 | MLX fp32 | MLX bf16 | speedup (bf16) |
+|---|---|---|---|---|
+| 1 | 446.4 ms | 383.4 ms | 376.2 ms | **1.19x** |
+| 4 | 1734.9 ms | 1515.6 ms | 1480.3 ms | **1.17x** |
+| 8 | 3454.5 ms | 3028.7 ms | 2957.5 ms | **1.17x** |
+
+Queries cost **~6 µs** (static lookup) — no neural encoding, which is the core
+efficiency property of V-SPLADE and carries over unchanged to the MLX port.
+
+Reproduce: `uv run python scripts/check_parity_vsplade.py [naver/v-splade-quality]`,
+`uv run python -m bench.eval_vidore --variant {efficient,quality}`,
+`uv run python -m bench.bench_vsplade --backend {torch,mlx} --dtype ...`.
+Converted weights: `NomaDamas/v-splade-{efficient,quality}-mlx` (Apache-2.0).
 
 **Bottom line: the MLX port is 1.3–4.0x faster than the fastest PyTorch configuration
 (MPS fp16), and fp32 retrieval quality matches PyTorch to the last floating-point
