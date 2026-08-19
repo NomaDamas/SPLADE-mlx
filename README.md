@@ -6,13 +6,18 @@
 
 ![Retrieval quality is preserved](assets/quality_parity.png)
 
-*All numbers above are measured on an Apple M4 Max (12P+4E, 64 GB). MLX fp32 reproduces
-the PyTorch fp32 nDCG@10 to the last floating-point digit on BEIR NFCorpus and SciFact —
-the ranking is identical, not just close. bf16 and 8-bit stay within ±0.0014.*
+*All numbers above are measured on an Apple M4 Max (12P+4E, 64 GB). The latency chart
+compares **matched precision only** (fp32 vs fp32, fp16 vs bf16), so the speedup is
+attributable to MLX itself — not to quantization. Quantization is an optional extra
+(it helps at batch 1, and is actually slower than bf16 at large batches). MLX fp32
+reproduces the PyTorch fp32 nDCG@10 to the last floating-point digit on BEIR NFCorpus
+and SciFact — the ranking is identical, not just close. bf16 and 8-bit stay within
+±0.0014.*
 
 ## Highlights
 
-- **1.3–4.0x faster** than the best PyTorch configuration (MPS fp16); up to **8.9x** vs PyTorch CPU
+- **1.3–4.0x faster at matched precision** (fp32 vs fp32: 1.3–3.4x, bf16 vs MPS fp16:
+  1.3–4.0x); up to **8.9x** vs PyTorch CPU
 - **Single-query encoding in 1.6 ms** (V-SPLADE query encoder, 8-bit) — fast enough for on-device, per-keystroke retrieval
 - **Bit-exact quality** in fp32, verified with three parity gates plus full BEIR evaluations
 - BERT and DistilBERT MLM backbones, asymmetric V-SPLADE query/doc pair API, bf16 / 8-bit / 4-bit quantization
