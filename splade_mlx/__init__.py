@@ -12,14 +12,15 @@ from pathlib import Path
 
 import mlx.core as mx
 import mlx.nn as nn
+import numpy as np
 
 from .convert import DEFAULT_OUT_DIR, convert
 from .models.bert import BertConfig, SpladeModel
 
-__all__ = ["load", "load_pair", "SpladeModel", "SpladePair"]
+__all__ = ["load", "load_pair", "to_numpy", "SpladeModel", "SpladePair"]
 
 
-def _resolve(model: str, dtype: str, out_dir: Path) -> Path:
+def _resolve(model: str, dtype: str | None, out_dir: Path) -> Path:
     """Return a local dir containing MLX-format weights.safetensors + config.json.
 
     Accepts: (a) a local pre-converted dir, (b) an HF repo already in MLX
@@ -39,10 +40,11 @@ def _resolve(model: str, dtype: str, out_dir: Path) -> Path:
     if "bert" in cfg:  # already MLX format on the hub
         return Path(snapshot_download(model))
 
+    conversion_dtype = dtype or "float32"
     model_name = model.split("/")[-1]
-    dest = out_dir / f"{model_name}-{dtype}"
+    dest = out_dir / f"{model_name}-{conversion_dtype}"
     if not (dest / "weights.safetensors").exists():
-        convert(model, out_dir=dest.parent, dtype=dtype)
+        convert(model, out_dir=dest.parent, dtype=conversion_dtype)
         # convert() writes to out_dir/model_name; move to dtype-suffixed dir
         plain = dest.parent / model_name
         if plain != dest:
@@ -50,9 +52,34 @@ def _resolve(model: str, dtype: str, out_dir: Path) -> Path:
     return dest
 
 
+def _stored_dtype(dest: Path, requested_dtype: str | None) -> str:
+    config = json.loads((dest / "config.json").read_text())
+    stored_dtype = config.get("dtype")
+    if stored_dtype is None:
+        raise ValueError(f"{dest} does not declare its stored weight dtype")
+    if requested_dtype is not None and requested_dtype != stored_dtype:
+        raise ValueError(
+            f"{dest} stores {stored_dtype} weights; requested dtype={requested_dtype}. "
+            "Load without dtype to use the stored weights, or load the original "
+            "upstream checkpoint to create a conversion at the requested dtype."
+        )
+    return stored_dtype
+
+
+def to_numpy(array: mx.array, dtype: mx.Dtype = mx.float32) -> np.ndarray:
+    """Evaluate an MLX result and export it as a NumPy-compatible dtype.
+
+    NumPy cannot consume MLX bfloat16 buffers directly, so sparse vectors are
+    cast to float32 by default before transfer.
+    """
+    converted = array.astype(dtype)
+    mx.eval(converted)
+    return np.array(converted)
+
+
 def load(
     hf_id: str,
-    dtype: str = "float32",
+    dtype: str | None = None,
     quantize_bits: int | None = None,
     out_dir: Path = DEFAULT_OUT_DIR,
 ):
@@ -65,6 +92,7 @@ def load(
 
     dest = _resolve(hf_id, dtype, out_dir)
     config = json.loads((dest / "config.json").read_text())
+    _stored_dtype(dest, dtype)
     model = SpladeModel(BertConfig.from_hf(config["bert"]))
     model.load_weights(str(dest / "weights.safetensors"))
     if quantize_bits is not None:
@@ -105,11 +133,17 @@ class SpladePair:
     def encode_doc(self, texts: list[str], max_length: int = 256) -> mx.array:
         return self._encode(self.doc_model, self.doc_tokenizer, texts, max_length)
 
+    def encode_query_numpy(self, texts: list[str], max_length: int = 64) -> np.ndarray:
+        return to_numpy(self.encode_query(texts, max_length))
+
+    def encode_doc_numpy(self, texts: list[str], max_length: int = 256) -> np.ndarray:
+        return to_numpy(self.encode_doc(texts, max_length))
+
 
 def load_pair(
     query_hf_id: str,
     doc_hf_id: str,
-    dtype: str = "float32",
+    dtype: str | None = None,
     quantize_bits: int | None = None,
 ) -> SpladePair:
     qm, qt = load(query_hf_id, dtype=dtype, quantize_bits=quantize_bits)

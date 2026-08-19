@@ -1314,48 +1314,77 @@ wheels = [
 [[package]]
 name = "splade-mlx"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "huggingface-hub" },
     { name = "mlx" },
-    { name = "num2words" },
     { name = "numpy" },
+    { name = "safetensors" },
+    { name = "tokenizers" },
+    { name = "transformers" },
+]
+
+[package.optional-dependencies]
+bench = [
+    { name = "num2words" },
     { name = "pillow" },
     { name = "psutil" },
     { name = "pyarrow" },
-    { name = "safetensors" },
-    { name = "tokenizers" },
     { name = "torch" },
     { name = "torchvision" },
-    { name = "transformers" },
+]
+convert = [
+    { name = "torch" },
+    { name = "torchvision" },
+]
+visual = [
+    { name = "num2words" },
+    { name = "pillow" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "matplotlib" },
+    { name = "num2words" },
+    { name = "pillow" },
+    { name = "psutil" },
+    { name = "pyarrow" },
     { name = "pytest" },
+    { name = "torch" },
+    { name = "torchvision" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "huggingface-hub", specifier = ">=1.27.0" },
     { name = "mlx", specifier = ">=0.32.1" },
-    { name = "num2words", specifier = ">=0.5.14" },
+    { name = "num2words", marker = "extra == 'bench'", specifier = ">=0.5.14" },
+    { name = "num2words", marker = "extra == 'visual'", specifier = ">=0.5.14" },
     { name = "numpy", specifier = ">=2.5.2" },
-    { name = "pillow", specifier = ">=12.3.0" },
-    { name = "psutil", specifier = ">=7.2.2" },
-    { name = "pyarrow", specifier = ">=25.0.1" },
+    { name = "pillow", marker = "extra == 'bench'", specifier = ">=12.3.0" },
+    { name = "pillow", marker = "extra == 'visual'", specifier = ">=12.3.0" },
+    { name = "psutil", marker = "extra == 'bench'", specifier = ">=7.2.2" },
+    { name = "pyarrow", marker = "extra == 'bench'", specifier = ">=25.0.1" },
     { name = "safetensors", specifier = ">=0.8.0" },
     { name = "tokenizers", specifier = ">=0.22.2" },
-    { name = "torch", specifier = ">=2.13.0" },
-    { name = "torchvision", specifier = ">=0.28.0" },
+    { name = "torch", marker = "extra == 'bench'", specifier = ">=2.13.0" },
+    { name = "torch", marker = "extra == 'convert'", specifier = ">=2.13.0" },
+    { name = "torchvision", marker = "extra == 'bench'", specifier = ">=0.28.0" },
+    { name = "torchvision", marker = "extra == 'convert'", specifier = ">=0.28.0" },
     { name = "transformers", specifier = ">=5.15.0" },
 ]
+provides-extras = ["visual", "convert", "bench"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "matplotlib", specifier = ">=3.11.1" },
+    { name = "num2words", specifier = ">=0.5.14" },
+    { name = "pillow", specifier = ">=12.3.0" },
+    { name = "psutil", specifier = ">=7.2.2" },
+    { name = "pyarrow", specifier = ">=25.0.1" },
     { name = "pytest", specifier = ">=9.1.1" },
+    { name = "torch", specifier = ">=2.13.0" },
+    { name = "torchvision", specifier = ">=0.28.0" },
 ]
 
 [[package]]

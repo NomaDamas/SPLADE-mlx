@@ -5,17 +5,36 @@ requires-python = ">=3.12"
 dependencies = [
     "huggingface-hub>=1.27.0",
     "mlx>=0.32.1",
-    "num2words>=0.5.14",
     "numpy>=2.5.2",
+    "safetensors>=0.8.0",
+    "tokenizers>=0.22.2",
+    "transformers>=5.15.0",
+]
+
+[project.optional-dependencies]
+visual = [
+    "num2words>=0.5.14",
+    "pillow>=12.3.0",
+]
+convert = [
+    "torch>=2.13.0",
+    "torchvision>=0.28.0",
+]
+bench = [
+    "num2words>=0.5.14",
     "pillow>=12.3.0",
     "psutil>=7.2.2",
     "pyarrow>=25.0.1",
-    "safetensors>=0.8.0",
-    "tokenizers>=0.22.2",
     "torch>=2.13.0",
     "torchvision>=0.28.0",
-    "transformers>=5.15.0",
 ]
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["splade_mlx*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
@@ -23,5 +42,11 @@ pythonpath = ["."]
 [dependency-groups]
 dev = [
     "matplotlib>=3.11.1",
+    "num2words>=0.5.14",
+    "pillow>=12.3.0",
+    "psutil>=7.2.2",
+    "pyarrow>=25.0.1",
     "pytest>=9.1.1",
+    "torch>=2.13.0",
+    "torchvision>=0.28.0",
 ]

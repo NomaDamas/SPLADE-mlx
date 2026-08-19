@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 
-from bench.workloads import RESULTS_DIR
+from bench.workloads import BENCHMARK_SUITE, P0_MODELS, RESULTS_DIR, WORKLOADS
 
 # display order; anything else found is appended alphabetically
 PREFERRED_ORDER = [
@@ -27,6 +27,30 @@ PREFERRED_ORDER = [
 TORCH_BEST_KEY = "baseline_mps_fp16"  # speedup denominator (best torch config)
 
 
+def validate_run(path, data: dict) -> None:
+    suite = data.get("benchmark_suite")
+    if suite != BENCHMARK_SUITE:
+        raise ValueError(
+            f"{path}: benchmark suite {suite!r} does not match {BENCHMARK_SUITE!r}"
+        )
+    expected_models = set(P0_MODELS)
+    actual_models = set(data["models"])
+    if actual_models != expected_models:
+        raise ValueError(
+            f"{path}: model set {sorted(actual_models)} does not match "
+            f"{sorted(expected_models)}"
+        )
+    for model_key, spec in P0_MODELS.items():
+        expected_workloads = {
+            workload.name for workload in WORKLOADS if workload.kind in spec["roles"]
+        }
+        actual_workloads = set(data["models"][model_key].get("workloads", {}))
+        if actual_workloads != expected_workloads:
+            raise ValueError(
+                f"{path}: workload set for {model_key} does not match current suite"
+            )
+
+
 def load_runs() -> dict[str, dict]:
     runs = {}
     for path in sorted(RESULTS_DIR.glob("*.json")):
@@ -35,6 +59,7 @@ def load_runs() -> dict[str, dict]:
         data = json.loads(path.read_text())
         if "models" not in data:  # e.g. quality_ndcg.json
             continue
+        validate_run(path, data)
         runs[path.stem] = data
     ordered = {k: runs[k] for k in PREFERRED_ORDER if k in runs}
     for k in sorted(runs):

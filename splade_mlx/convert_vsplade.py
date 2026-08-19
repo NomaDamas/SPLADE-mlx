@@ -120,7 +120,11 @@ def convert_vsplade(hf_id: str, out_dir: Path = DEFAULT_OUT_DIR, dtype: str = "f
     return dest
 
 
-def load_vsplade(hf_id_or_dir: str, dtype: str = "float32", out_dir: Path = DEFAULT_OUT_DIR):
+def load_vsplade(
+    hf_id_or_dir: str,
+    dtype: str | None = None,
+    out_dir: Path = DEFAULT_OUT_DIR,
+):
     """Returns (doc_model, query_encoder, processor).
 
     Accepts a local converted dir, a pre-converted MLX hub repo (e.g.
@@ -150,11 +154,23 @@ def load_vsplade(hf_id_or_dir: str, dtype: str = "float32", out_dir: Path = DEFA
                     shutil.copy(hf_hub_download(hf_id_or_dir, name), dest / name)
             (dest / "config.json").write_text(json.dumps(cfg))
         else:  # original checkpoint -> convert
-            dest = out_dir / f"{hf_id_or_dir.split('/')[-1]}-{dtype}"
+            conversion_dtype = dtype or "float32"
+            dest = out_dir / f"{hf_id_or_dir.split('/')[-1]}-{conversion_dtype}"
             if not (dest / "weights.safetensors").exists():
-                dest = convert_vsplade(hf_id_or_dir, out_dir=out_dir, dtype=dtype)
+                dest = convert_vsplade(
+                    hf_id_or_dir, out_dir=out_dir, dtype=conversion_dtype
+                )
 
     config = json.loads((dest / "config.json").read_text())
+    stored_dtype = config.get("dtype")
+    if stored_dtype is None:
+        raise ValueError(f"{dest} does not declare its stored weight dtype")
+    if dtype is not None and dtype != stored_dtype:
+        raise ValueError(
+            f"{dest} stores {stored_dtype} weights; requested dtype={dtype}. "
+            "Load without dtype to use the stored weights, or load the original "
+            "upstream checkpoint to create a conversion at the requested dtype."
+        )
     model = VSpladeModel(VSpladeConfig.from_hf(config["vsplade"]))
     model.load_weights(str(dest / "weights.safetensors"))
     mx.eval(model.parameters())

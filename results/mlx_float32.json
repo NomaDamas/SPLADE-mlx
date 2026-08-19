@@ -1,4 +1,5 @@
 {
+  "benchmark_suite": "text-v1-3models-10workloads",
   "backend": "mlx",
   "dtype": "float32",
   "quantize_bits": null,

@@ -1,6 +1,6 @@
 """Package and upload MLX-converted SPLADE weights to the NomaDamas HF org.
 
-Repos are created PRIVATE; flip to public at launch time.
+Repos are published publicly after their files are uploaded.
 License compliance:
   - naver/* checkpoints are CC BY-NC-SA 4.0 (c) NAVER Corp. Redistribution of
     the converted (adapted) weights is permitted under the same license with
@@ -41,7 +41,7 @@ MODELS = [
         "license": "cc-by-nc-sa-4.0",
         "nc": True,
         "desc": "SPLADE-v3 DistilBERT variant: symmetric sparse encoder for queries and documents.",
-        "quality": "fp32 parity vs PyTorch: max |logit delta| 5.8e-05, sparse cosine 1.000000, top-64 term overlap 100%.",
+        "quality": "Separate fp32 conversion validation: max |logit delta| 5.8e-05, sparse cosine 1.000000, top-64 term overlap 100%.",
     },
     {
         "src": "naver/splade-v3",
@@ -49,7 +49,7 @@ MODELS = [
         "license": "cc-by-nc-sa-4.0",
         "nc": True,
         "desc": "SPLADE-v3 (BERT-base): symmetric sparse encoder for queries and documents; the main SPLADE-v3 family model. Upstream is gated on the HF hub (click-through, CC BY-NC-SA acknowledgement).",
-        "quality": "fp32 parity vs PyTorch: max |logit delta| 7.6e-05, sparse cosine 1.000000, top-64 term overlap 100%.",
+        "quality": "Separate fp32 conversion validation: max |logit delta| 7.6e-05, sparse cosine 1.000000, top-64 term overlap 100%.",
     },
     {
         "src": "naver/splade-v3-doc",
@@ -57,7 +57,7 @@ MODELS = [
         "license": "cc-by-nc-sa-4.0",
         "nc": True,
         "desc": "SPLADE-v3-Doc (BERT-base): document-side encoder; the query side is inference-free (bag-of-words) in the SPLADE-v3-Doc setup.",
-        "quality": "fp32 parity vs PyTorch: max |logit delta| 4.8e-05, sparse cosine 1.000000, top-64 term overlap 100%.",
+        "quality": "Separate fp32 conversion validation: max |logit delta| 4.8e-05, sparse cosine 1.000000, top-64 term overlap 100%.",
     },
     {
         "src": "naver/splade-v3-lexical",
@@ -65,7 +65,7 @@ MODELS = [
         "license": "cc-by-nc-sa-4.0",
         "nc": True,
         "desc": "SPLADE-v3-Lexical (BERT-base): lexical-matching-focused SPLADE-v3 variant (see the SPLADE-v3 paper, arXiv:2403.06789).",
-        "quality": "fp32 parity vs PyTorch: max |logit delta| 3.1e-05, sparse cosine 1.000000, top-64 term overlap 100%.",
+        "quality": "Separate fp32 conversion validation: max |logit delta| 3.1e-05, sparse cosine 1.000000, top-64 term overlap 100%.",
     },
     {
         "src": "prithivida/Splade_PP_en_v1",
@@ -73,7 +73,7 @@ MODELS = [
         "license": "apache-2.0",
         "nc": False,
         "desc": "Independent Apache-2.0 SPLADE++ reproduction (BERT-base), freely usable commercially.",
-        "quality": "fp32 parity vs PyTorch: max |logit delta| 5.5e-05, sparse cosine 1.000000, top-64 term overlap 100%.",
+        "quality": "Separate fp32 conversion validation: max |logit delta| 5.5e-05, sparse cosine 1.000000, top-64 term overlap 100%.",
     },
 ]
 
@@ -99,8 +99,9 @@ produced by [NomaDamas/SPLADE-mlx](https://github.com/NomaDamas/SPLADE-mlx).
 (parameter re-mapping, cast to {dtype}). No training or fine-tuning was performed.
 
 **Quality**: {quality}
-Numeric parity gates (fp32): MLM logits max |delta| < 1e-3, sparse-vector cosine >= 0.9999,
-top-64 term overlap >= 99% vs the PyTorch reference. Full methodology: see the SPLADE-mlx report.
+This repository stores **{dtype}** weights. Any fp32 parity number above comes from a
+separate fp32 conversion of the upstream checkpoint, not this linked {dtype} artifact.
+Full methodology: see the SPLADE-mlx report.
 
 ## Usage
 
@@ -112,6 +113,9 @@ model, tok = load("{dst}")
 enc = tok(["what causes vitamin d deficiency"], return_tensors="np", padding=True)
 sparse = model.encode(mx.array(enc["input_ids"]), mx.array(enc["attention_mask"]))  # (1, 30522)
 ```
+
+Do not pass `dtype="float32"` for this pre-converted repository: its declared stored
+dtype is `{dtype}`. Load the upstream `{src}` checkpoint to create an fp32 conversion.
 
 ## License
 
@@ -171,6 +175,7 @@ def main() -> None:
             folder_path=str(staging),
             commit_message=f"MLX {DTYPE} conversion of {spec['src']}",
         )
+        api.update_repo_settings(repo_id=spec["dst"], private=False)
         print(f"  uploaded -> https://huggingface.co/{spec['dst']}", flush=True)
     print("PUBLISH_HF_DONE", flush=True)
 

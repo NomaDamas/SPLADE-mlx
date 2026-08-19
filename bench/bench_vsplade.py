@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import platform
 import statistics
 import sys
 import time
@@ -25,7 +24,14 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from bench.workloads import MAX_ITERS, MIN_ITERS, RESULTS_DIR, TARGET_SECONDS, WARMUP_ITERS
+from bench.workloads import (
+    MAX_ITERS,
+    MIN_ITERS,
+    RESULTS_DIR,
+    TARGET_SECONDS,
+    WARMUP_ITERS,
+    hardware_metadata,
+)
 
 HF_ID = "naver/v-splade-efficient"
 DOC_PROMPT = "User:<image><end_of_utterance>\nAssistant:"
@@ -77,8 +83,7 @@ def main() -> None:
     results = {
         "backend": args.backend if args.backend == "mlx" else f"torch_{args.device}",
         "dtype": dtype,
-        "machine": platform.platform(),
-        "chip": "Apple M4 Max 16c/64GB",
+        **hardware_metadata(),
         "model": HF_ID,
         "workloads": {},
     }

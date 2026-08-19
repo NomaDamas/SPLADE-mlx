@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import platform
 import statistics
 import time
 
@@ -22,7 +21,15 @@ import mlx.core as mx
 import psutil
 
 from bench import workloads as W
-from bench.workloads import P0_MODELS, RESULTS_DIR, WORKLOADS, Workload, texts_for
+from bench.workloads import (
+    BENCHMARK_SUITE,
+    P0_MODELS,
+    RESULTS_DIR,
+    WORKLOADS,
+    Workload,
+    hardware_metadata,
+    texts_for,
+)
 from splade_mlx import load
 
 
@@ -94,13 +101,13 @@ def main() -> None:
         tag += "_compile"
 
     results: dict = {
+        "benchmark_suite": BENCHMARK_SUITE,
         "backend": "mlx",
         "dtype": args.dtype,
         "quantize_bits": args.quantize_bits,
         "compile": args.use_compile,
         "framework": f"mlx-{mx.__version__}",
-        "machine": platform.platform(),
-        "chip": "Apple M4 Max 16c/64GB",
+        **hardware_metadata(),
         "protocol": {
             "warmup": W.WARMUP_ITERS,
             **protocol,

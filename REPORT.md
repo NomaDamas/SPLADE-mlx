@@ -41,7 +41,8 @@ variants. bf16 passes the ±0.002 gate for `efficient` and misses it narrowly fo
 `quality` — fp32 is the default; bf16 is a deliberate trade-off.
 
 **Latency** (document-page encoding: vision+text+SPLADE head; preprocessing ~39 ms/page
-on CPU measured separately):
+on CPU measured separately). The matched fp32 speedup is 1.14–1.16x; the final
+`bf16 vs MPS` column is deliberately a mixed-precision comparison:
 
 | batch (pages) | torch CPU fp32 | torch MPS fp32 | MLX fp32 | MLX bf16 | bf16 vs MPS | bf16 vs CPU |
 |---|---|---|---|---|---|---|
@@ -62,10 +63,11 @@ Reproduce: `uv run python scripts/check_parity_vsplade.py [naver/v-splade-qualit
 `uv run python -m bench.bench_vsplade --backend {torch,mlx} --dtype ...`.
 Converted weights: `NomaDamas/v-splade-{efficient,quality}-mlx` (Apache-2.0).
 
-**Bottom line: the MLX port is 1.3–4.0x faster than the fastest PyTorch configuration
-(MPS fp16), and fp32 retrieval quality matches PyTorch to the last floating-point
-digit.** Efficient-SPLADE query encoding runs at **1.6–2.1 ms/query** on an M4 Max — fast
-enough for real-time on-device retrieval.
+**Bottom line: text SPLADE is 1.3–4.0x faster than the fastest measured PyTorch
+configuration (MPS fp16), while V-SPLADE document encoding is a more modest
+1.14–1.16x faster at matched fp32 precision. Separately converted fp32 models match
+PyTorch retrieval quality to the last reported digit.** Efficient-SPLADE query
+encoding runs at **1.6–2.1 ms/query** on an M4 Max.
 
 - Date: 2026-08-18
 - Machine: Apple M4 Max (12P+4E, 64 GB), macOS 26.5.1
@@ -113,6 +115,11 @@ ranking; gate: ±0.002 vs torch fp32):
   quality/speed trade-off option
 - Absolute scores match published BEIR numbers (NFCorpus ~0.35, SciFact ~0.70),
   independently validating the pipeline itself
+
+The Hub links in the README store bf16 weights. The fp32 parity gates above refer to
+separate fp32 conversions from the upstream checkpoints, not to those linked bf16
+artifacts. The loader enforces this distinction: a conflicting dtype request for a
+pre-converted repository is rejected rather than silently ignored.
 
 ## 3. Latency / throughput
 

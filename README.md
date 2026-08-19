@@ -6,7 +6,7 @@
   **7.3x** vs CPU), with fp32 retrieval quality identical to PyTorch on BEIR.
 - **V-SPLADE** ([arXiv:2605.30917](https://arxiv.org/abs/2605.30917)): the first MLX port of
   NAVER's inference-free **multimodal** sparse retriever for visual document retrieval —
-  bit-exact fp32 parity on ViDoRe, ~6 µs inference-free queries (section below).
+  score-identical fp32 retrieval on ViDoRe, ~6 µs inference-free queries (section below).
 
 ## Text SPLADE (naver/splade-v3 family, splade-cocondenser, ...)
 
@@ -29,12 +29,14 @@ and SciFact — the ranking is identical, not just close. bf16 and 8-bit stay wi
 ![ViDoRe nDCG@5 parity](assets/vsplade_quality.png)
 
 *Measured on an Apple M4 Max (12P+4E, 64 GB). V-SPLADE document-page encoding is
-**1.17–1.19x faster than PyTorch MPS** at matched precision and **~5.2–5.4x faster
-than PyTorch CPU**, and fp32 reproduces the PyTorch ViDoRe nDCG@5 to the last
-floating-point digit (Δ = 0.0000, both variants). Queries are inference-free: a static
-vocabulary lookup (~6 µs) — no neural encoding at all.*
+**1.14–1.16x faster than PyTorch MPS at matched fp32 precision**. MLX bf16 is
+**1.17–1.19x faster than MPS fp32** and **~5.2–5.4x faster than PyTorch CPU**, but
+that is a mixed-precision comparison. A separately converted MLX fp32 model
+reproduces the PyTorch ViDoRe nDCG@5 to the last reported digit (Δ = 0.0000,
+both variants). Queries are inference-free: a static vocabulary lookup (~6 µs),
+independent of the document encoder backend.*
 
-| MLX weights | Upstream | fp32 parity (max logit Δ) | ViDoRe docvqa nDCG@5 (fp32) | License |
+| MLX weights | Upstream | separate fp32 conversion max logit Δ | ViDoRe docvqa nDCG@5 (fp32) | License |
 |---|---|---|---|---|
 | [NomaDamas/v-splade-efficient-mlx](https://huggingface.co/NomaDamas/v-splade-efficient-mlx) | [naver/v-splade-efficient](https://huggingface.co/naver/v-splade-efficient) | 1.5e-04 | 0.4098 (= torch, Δ +0.0000) | **Apache-2.0** |
 | [NomaDamas/v-splade-quality-mlx](https://huggingface.co/NomaDamas/v-splade-quality-mlx) | [naver/v-splade-quality](https://huggingface.co/naver/v-splade-quality) | 6.4e-04 | 0.4331 (= torch, Δ +0.0000) | **Apache-2.0** |
@@ -67,14 +69,16 @@ score = d @ qw.T  # sparse dot product — inverted-index compatible
 ```
 
 Note on half precision: MLX bf16 stays within the ±0.002 nDCG gate for `efficient`
-(+0.0002) but lands just outside it for `quality` (−0.0024). Use fp32 for exact parity;
-bf16 only when the small speed gain matters more than the last 0.2pp of nDCG.
+(+0.0002) but lands just outside it for `quality` (−0.0024). The linked artifacts
+store bf16 weights. For fp32, load the upstream checkpoint with `dtype="float32"`
+to create a separate local conversion.
 
 ## Highlights
 
 - **1.3–2.9x faster at matched precision** (fp32 vs fp32 and bf16 vs MPS fp16); up to
   **7.3x** vs PyTorch CPU
-- **Bit-exact quality** in fp32, verified with three parity gates plus full BEIR evaluations
+- **Score-identical retrieval quality** in separate fp32 conversions, verified with
+  three parity gates plus full BEIR evaluations
 - BERT and DistilBERT MLM backbones, asymmetric query/doc pair API, bf16 / 8-bit / 4-bit quantization
 - Pre-converted weights ready on the Hugging Face Hub (table below)
 
@@ -82,7 +86,11 @@ Full methodology and tables: [REPORT.md](REPORT.md) · Project plan: [PLAN.md](P
 
 ## Supported models
 
-| MLX weights (Hugging Face) | Upstream checkpoint | Backbone | fp32 parity (max logit Δ) | License |
+The linked Hub artifacts store **bfloat16** weights. The fp32 parity column records
+validation of a separate fp32 conversion from the upstream checkpoint; it does not
+describe the numeric dtype of the linked artifact.
+
+| MLX weights (Hugging Face) | Upstream checkpoint | Backbone | separate fp32 conversion max logit Δ | License |
 |---|---|---|---|---|
 | [NomaDamas/splade-cocondenser-ensembledistil-mlx](https://huggingface.co/NomaDamas/splade-cocondenser-ensembledistil-mlx) | [naver/splade-cocondenser-ensembledistil](https://huggingface.co/naver/splade-cocondenser-ensembledistil) | BERT-base | 6.1e-05 | CC BY-NC-SA 4.0 |
 | [NomaDamas/splade-v3-mlx](https://huggingface.co/NomaDamas/splade-v3-mlx) | [naver/splade-v3](https://huggingface.co/naver/splade-v3) (gated) | BERT-base | 7.6e-05 | CC BY-NC-SA 4.0 |
@@ -91,10 +99,13 @@ Full methodology and tables: [REPORT.md](REPORT.md) · Project plan: [PLAN.md](P
 | [NomaDamas/splade-v3-distilbert-mlx](https://huggingface.co/NomaDamas/splade-v3-distilbert-mlx) | [naver/splade-v3-distilbert](https://huggingface.co/naver/splade-v3-distilbert) | DistilBERT | 5.8e-05 | CC BY-NC-SA 4.0 |
 | [NomaDamas/Splade_PP_en_v1-mlx](https://huggingface.co/NomaDamas/Splade_PP_en_v1-mlx) | [prithivida/Splade_PP_en_v1](https://huggingface.co/prithivida/Splade_PP_en_v1) | BERT-base | 5.5e-05 | **Apache-2.0** |
 
-Every row passed the same fp32 parity gates before upload: max MLM-logit delta < 1e-3,
-sparse-vector cosine ≥ 0.9999, and top-64 expansion-term overlap ≥ 99% vs the PyTorch
-reference. Any other BERT / DistilBERT `*ForMaskedLM` SPLADE checkpoint can be converted
-with `splade_mlx.convert` as well.
+Every architecture passed the same gates in a separate fp32 conversion before the
+bf16 artifact was published: max MLM-logit delta < 1e-3, sparse-vector cosine ≥
+0.9999, and top-64 expansion-term overlap ≥ 99% vs the PyTorch reference.
+`splade_mlx.convert` supports checkpoints using the standard Hugging Face
+`BertForMaskedLM` or `DistilBertForMaskedLM` parameter layout and standard SPLADE
+masked max pooling. Custom remote-code architectures and modified MLM heads are not
+claimed as compatible.
 
 > The `naver/*` weights are **non-commercial** (CC BY-NC-SA 4.0). For commercial use,
 > pick `Splade_PP_en_v1-mlx` (Apache-2.0).
@@ -102,7 +113,10 @@ with `splade_mlx.convert` as well.
 ## Install
 
 ```bash
-uv sync   # or: pip install -e .
+uv sync
+# Core text inference: pip install .
+# Visual preprocessing: pip install '.[visual]'
+# Conversion and benchmarks: pip install '.[convert]' / pip install '.[bench]'
 ```
 
 ## Usage
@@ -114,7 +128,7 @@ from splade_mlx import load, load_pair
 # Symmetric SPLADE (one encoder for queries and documents).
 # Accepts a pre-converted MLX repo, or an original HF checkpoint id
 # (converted to MLX on first use and cached).
-model, tok = load("NomaDamas/splade-v3-mlx")
+model, tok = load("NomaDamas/splade-v3-mlx")  # uses the stored bf16 weights
 enc = tok(["what causes vitamin d deficiency"], return_tensors="np", padding=True)
 sparse = model.encode(mx.array(enc["input_ids"]), mx.array(enc["attention_mask"]))  # (1, 30522)
 
@@ -127,6 +141,28 @@ score = q @ d.T  # sparse dot product
 # Quantization (see the quality chart above for the impact).
 model, tok = load("NomaDamas/splade-v3-mlx", quantize_bits=8)
 ```
+
+Pre-converted repositories use their declared stored dtype. Passing a conflicting
+dtype raises an error instead of silently ignoring the request. To create an fp32
+conversion, load the upstream checkpoint explicitly:
+
+```python
+model, tok = load("naver/splade-cocondenser-ensembledistil", dtype="float32")
+```
+
+MLX bfloat16 buffers cannot be consumed directly by NumPy. Use the provided export
+helper:
+
+```python
+from splade_mlx import to_numpy
+
+sparse_np = to_numpy(sparse)  # evaluated and cast to NumPy float32
+```
+
+The returned vocabulary vectors are mathematically sparse but stored as dense MLX
+arrays. This package handles model inference; production posting-list construction,
+top-k pruning, CSR/COO conversion, and inverted-index serving remain the caller's
+responsibility.
 
 ## Benchmarks
 
@@ -199,6 +235,10 @@ uv run python -m bench.bench_mlx --dtype bfloat16          # (--compile / --quan
 uv run python -m bench.report                              # markdown comparison tables
 uv run python scripts/make_charts.py                       # README charts
 ```
+
+Each benchmark JSON records a suite identifier and detected host metadata.
+`bench.report` rejects result files whose model/workload set does not match the
+current suite instead of silently combining stale results.
 
 ## License
 

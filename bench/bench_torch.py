@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import platform
 import statistics
 import time
 
@@ -31,6 +30,7 @@ from bench.workloads import (
     WARMUP_ITERS,
     WORKLOADS,
     Workload,
+    hardware_metadata,
     texts_for,
 )
 
@@ -105,11 +105,11 @@ def main() -> None:
 
     proc = psutil.Process()
     results: dict = {
+        "benchmark_suite": BENCHMARK_SUITE,
         "backend": device,
         "dtype": args.dtype,
         "framework": f"torch-{torch.__version__}",
-        "machine": platform.platform(),
-        "chip": "Apple M4 Max 16c/64GB",
+        **hardware_metadata(),
         "torch_num_threads": torch.get_num_threads(),
         "protocol": {
             "warmup": WARMUP_ITERS,
@@ -182,3 +182,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    BENCHMARK_SUITE,

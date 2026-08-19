@@ -1,6 +1,6 @@
 """Package and upload MLX-converted V-SPLADE (visual) weights to NomaDamas.
 
-Repos are created PRIVATE; flip to public at launch time. Upstream weights are
+Repos are published publicly after upload. Upstream weights are
 Apache-2.0 (naver/v-splade-{efficient,quality}), so redistribution is
 unrestricted with attribution.
 
@@ -61,12 +61,17 @@ query lookup table `softplus(embedding @ projection + bias)` is precomputed
 with special tokens zeroed. No training or fine-tuning was performed.
 
 **Quality** (see repo REPORT.md for methodology):
-- fp32 parity vs the PyTorch reference: max |logit delta| {logit_delta} on
+- Separate fp32 conversion parity vs the PyTorch reference: max |logit delta|
+  {logit_delta} on
   real document-page inputs, sparse-vector cosine 1.000000, top-64 term
   overlap 100%; the query table matches the shipped Sentence Transformers
   static embedding to 1.2e-07.
 - ViDoRe `docvqa_test_subsampled` nDCG@5 (fp32): {torch_ndcg} (torch) ->
   {mlx_ndcg} (MLX), delta {ndcg_delta:+.4f} (gate: ±0.002).
+
+This repository itself stores **{dtype}** document-encoder weights. The fp32 numbers
+above describe a separate fp32 conversion and must not be attributed to this linked
+{dtype} artifact.
 
 ## Usage
 
@@ -162,6 +167,7 @@ def main() -> None:
             repo_id=dst, folder_path=str(staging),
             commit_message=f"MLX {DTYPE} conversion of {src}",
         )
+        api.update_repo_settings(repo_id=dst, private=False)
         print(f"  uploaded -> https://huggingface.co/{dst}", flush=True)
     print("PUBLISH_VSPLADE_DONE", flush=True)
 

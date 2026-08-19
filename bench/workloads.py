@@ -9,22 +9,35 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
+import os
+import platform
 from pathlib import Path
+import subprocess
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = REPO_ROOT / "data"
 RESULTS_DIR = REPO_ROOT / "results"
 REFERENCE_DIR = DATA_DIR / "reference"
+BENCHMARK_SUITE = "text-v1-3models-10workloads"
 
 # ---------------------------------------------------------------------------
 # Models
 # ---------------------------------------------------------------------------
 # roles: which workload kinds this checkpoint is used for.
 # splade-cocondenser is symmetric (one encoder for queries and docs).
+# The Efficient-SPLADE checkpoints are an asymmetric text-only query/doc pair.
 P0_MODELS: dict[str, dict] = {
     "splade-cocondenser-ensembledistil": {
         "hf_id": "naver/splade-cocondenser-ensembledistil",
         "roles": ("query", "doc"),
+    },
+    "efficient-splade-V-large-query": {
+        "hf_id": "naver/efficient-splade-V-large-query",
+        "roles": ("query",),
+    },
+    "efficient-splade-V-large-doc": {
+        "hf_id": "naver/efficient-splade-V-large-doc",
+        "roles": ("doc",),
     },
 }
 
@@ -119,3 +132,37 @@ MIN_ITERS = 12
 MAX_ITERS = 50
 TARGET_SECONDS = 8.0
 QUICK_PROTOCOL = {"min_iters": 3, "max_iters": 3, "target_seconds": 1.0}
+
+
+def hardware_metadata() -> dict[str, str]:
+    """Return measured host metadata without claiming a specific Apple chip."""
+
+    chip = platform.processor() or platform.machine()
+    memory = "unknown"
+    try:
+        if platform.system() == "Darwin":
+            brand = subprocess.run(
+                ["sysctl", "-n", "machdep.cpu.brand_string"],
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            if brand:
+                chip = brand
+            memory_bytes = int(
+                subprocess.run(
+                    ["sysctl", "-n", "hw.memsize"],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                ).stdout.strip()
+            )
+            memory = f"{round(memory_bytes / 1024**3)}GB"
+    except (OSError, subprocess.SubprocessError, ValueError):
+        pass
+    return {
+        "machine": platform.platform(),
+        "chip": chip,
+        "memory": memory,
+        "logical_cpus": str(os.cpu_count() or "unknown"),
+    }
