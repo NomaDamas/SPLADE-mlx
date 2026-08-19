@@ -1,15 +1,23 @@
-# SPLADE / V-SPLADE on Apple Silicon: PyTorch vs MLX Performance Report
+# SPLADE on Apple Silicon: PyTorch vs MLX Performance Report (text models)
+
+> **Correction note**: earlier revisions of this report called the
+> `naver/efficient-splade-V-large` pair "V-SPLADE". That was wrong — **V-SPLADE**
+> ([arXiv:2605.30917](https://arxiv.org/abs/2605.30917)) is NAVER's multimodal
+> inference-free sparse retriever for *visual document retrieval*. The models measured
+> here are the text-only **Efficient-SPLADE** checkpoints (SIGIR'22 efficiency study);
+> all measurements remain valid for those models. The actual V-SPLADE MLX port is
+> tracked separately.
 
 **Bottom line: the MLX port is 1.3–4.0x faster than the fastest PyTorch configuration
 (MPS fp16), and fp32 retrieval quality matches PyTorch to the last floating-point
-digit.** V-SPLADE query encoding runs at **1.6–2.1 ms/query** on an M4 Max — fast
+digit.** Efficient-SPLADE query encoding runs at **1.6–2.1 ms/query** on an M4 Max — fast
 enough for real-time on-device retrieval.
 
 - Date: 2026-08-18
 - Machine: Apple M4 Max (12P+4E, 64 GB), macOS 26.5.1
 - Frameworks: torch 2.13.0 (CPU/MPS) vs mlx 0.32.1
 - Models: `naver/splade-cocondenser-ensembledistil` (SPLADE++, BERT-base, symmetric),
-  `naver/efficient-splade-V-large-{query,doc}` (**V-SPLADE**, DistilBERT, asymmetric pair)
+  `naver/efficient-splade-V-large-{query,doc}` (**Efficient-SPLADE**, DistilBERT, asymmetric pair)
 - Raw data: `results/*.json`, logs: `results/{baseline,mlx}_run.log`
 
 ## 1. Methodology
@@ -71,7 +79,7 @@ without any quantization.)
 | doc-L256-B32 | 822.96 ms | 197.83 ms | 176.96 ms | 147.03 ms | 151.65 ms | **1.35x** |
 | doc-L256-B64 | 1600.12 ms | 393.32 ms | 358.86 ms | 294.81 ms | 294.41 ms | **1.34x** |
 
-### efficient-splade-V-large-query (V-SPLADE query encoder, DistilBERT)
+### efficient-splade-V-large-query (Efficient-SPLADE query encoder, DistilBERT)
 
 | workload | torch cpu fp32 | torch mps fp16 | mlx bf16+compile | mlx q8 | **speedup** |
 |---|---|---|---|---|---|
@@ -79,7 +87,7 @@ without any quantization.)
 | query-L32-B8 | 23.10 ms | 14.94 ms | 4.17 ms | 4.82 ms | **3.59x** |
 | query-L32-B32 | 68.69 ms | 49.41 ms | 12.22 ms | 16.65 ms | **4.04x** |
 
-### efficient-splade-V-large-doc (V-SPLADE document encoder, DistilBERT)
+### efficient-splade-V-large-doc (Efficient-SPLADE document encoder, DistilBERT)
 
 | workload | torch cpu fp32 | torch mps fp16 | mlx bf16 | mlx bf16+compile | **speedup** |
 |---|---|---|---|---|---|
@@ -87,7 +95,7 @@ without any quantization.)
 | doc-L256-B1 | 24.52 ms | 7.46 ms | 4.27 ms | 4.23 ms | **1.77x** |
 | doc-L256-B64 | 1032.40 ms | 273.49 ms | 186.08 ms | 179.66 ms | **1.52x** |
 
-**Throughput highlights** (V-SPLADE, bf16+compile): **2,618 queries/s** (L32-B32,
+**Throughput highlights** (Efficient-SPLADE, bf16+compile): **2,618 queries/s** (L32-B32,
 12.22 ms / 32), single-query latency **1.57 ms** with q8 (637 q/s), document encoding
 **716 docs/s** (L128-B32, 44.68 ms / 32).
 
@@ -101,7 +109,7 @@ numbers are **MLX active memory (weights)**.
 | splade-cocondenser | 621 MB | 266 MB | 85 MB |
 | efficient-splade-V (per encoder) | ~795 MB | 181 MB | 58 MB |
 
-With q4 quantization a single V-SPLADE encoder is **58 MB** — the full query+doc pair
+With q4 quantization a single Efficient-SPLADE encoder is **58 MB** — the full query+doc pair
 fits in under 120 MB.
 
 ## 5. Observations
@@ -117,7 +125,7 @@ fits in under 120 MB.
 4. **q8/q4 are batch-1 specializations**: fastest at B1 (1.57 ms) but slower than bf16
    at larger batches due to dequantization overhead in compute-bound regimes.
 5. Versus torch CPU fp32 the speedup is **4.5–8.9x**.
-6. V-SPLADE's design intent (a lightweight query encoder) carries over to MLX: query
+6. Efficient-SPLADE's design intent (a lightweight query encoder) carries over to MLX: query
    encoding is ~1.6x faster than cocondenser (6-layer DistilBERT vs 12-layer BERT).
 
 ## 6. Reproduction
@@ -140,7 +148,7 @@ Using the MLX models:
 from splade_mlx import load, load_pair
 
 model, tok = load("naver/splade-cocondenser-ensembledistil", dtype="bfloat16")
-pair = load_pair()          # asymmetric V-SPLADE query/doc pair
+pair = load_pair()          # asymmetric Efficient-SPLADE query/doc pair
 q = pair.encode_query(["what causes vitamin d deficiency"])   # (1, 30522) sparse
 ```
 

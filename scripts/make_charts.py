@@ -45,7 +45,7 @@ def latency_chart() -> None:
     mlxq8 = _load("mlx_float32_q8")
 
     panels = [
-        ("V-SPLADE query encoder — query (seq 32, batch 1)", "efficient-splade-V-large-query", "query-L32-B1"),
+        ("SPLADE++ (BERT-base) — queries (seq 32, batch 1)", "splade-cocondenser-ensembledistil", "query-L32-B1"),
         ("SPLADE++ (BERT-base) — documents (seq 256, batch 32)", "splade-cocondenser-ensembledistil", "doc-L256-B32"),
     ]
 
@@ -112,12 +112,8 @@ def latency_chart() -> None:
 def quality_chart() -> None:
     q = json.loads((RESULTS / "quality_ndcg.json").read_text())
     cells = [
-        (ds, fam, short)
+        (ds, "splade-cocondenser-ensembledistil", "SPLADE++")
         for ds in ("nfcorpus", "scifact")
-        for fam, short in (
-            ("splade-cocondenser-ensembledistil", "SPLADE++"),
-            ("efficient-splade-V-large", "V-SPLADE"),
-        )
     ]
     configs = [("mlx-float32", "fp32"), ("mlx-bfloat16", "bf16"), ("mlx-q8", "8-bit"), ("mlx-q4", "4-bit")]
     colors = ["#0a84ff", "#30b0c7", "#64d2ff", "#a5b4fc"]

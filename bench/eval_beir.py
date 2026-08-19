@@ -28,10 +28,6 @@ MODEL_FAMILIES = {
         "query": "naver/splade-cocondenser-ensembledistil",
         "doc": "naver/splade-cocondenser-ensembledistil",
     },
-    "efficient-splade-V-large": {
-        "query": "naver/efficient-splade-V-large-query",
-        "doc": "naver/efficient-splade-V-large-doc",
-    },
 }
 
 CONFIGS = ["torch-mps-fp32", "mlx-float32", "mlx-bfloat16", "mlx-q8", "mlx-q4"]

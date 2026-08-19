@@ -36,22 +36,6 @@ MODELS = [
         "quality": "BEIR quality parity vs PyTorch fp32: nDCG@10 delta +0.0001 (NFCorpus) / +0.0004 (SciFact) in bfloat16.",
     },
     {
-        "src": "naver/efficient-splade-V-large-query",
-        "dst": "NomaDamas/efficient-splade-V-large-query-mlx",
-        "license": "cc-by-nc-sa-4.0",
-        "nc": True,
-        "desc": "V-SPLADE (Efficient SPLADE level V) QUERY encoder (DistilBERT). Use together with the -doc encoder.",
-        "quality": "BEIR quality parity vs PyTorch fp32 (query+doc pair): nDCG@10 delta +0.0009 (NFCorpus) / +0.0008 (SciFact) in bfloat16. 2.1 ms/query on an M4 Max.",
-    },
-    {
-        "src": "naver/efficient-splade-V-large-doc",
-        "dst": "NomaDamas/efficient-splade-V-large-doc-mlx",
-        "license": "cc-by-nc-sa-4.0",
-        "nc": True,
-        "desc": "V-SPLADE (Efficient SPLADE level V) DOCUMENT encoder (DistilBERT). Use together with the -query encoder.",
-        "quality": "BEIR quality parity vs PyTorch fp32 (query+doc pair): nDCG@10 delta +0.0009 (NFCorpus) / +0.0008 (SciFact) in bfloat16.",
-    },
-    {
         "src": "naver/splade-v3-distilbert",
         "dst": "NomaDamas/splade-v3-distilbert-mlx",
         "license": "cc-by-nc-sa-4.0",

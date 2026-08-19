@@ -73,7 +73,7 @@ def load(
 
 
 class SpladePair:
-    """Asymmetric V-SPLADE pair: separate query and document encoders."""
+    """Asymmetric pair of SPLADE text encoders (separate query and document models)."""
 
     def __init__(self, query_model, query_tokenizer, doc_model, doc_tokenizer):
         self.query_model = query_model
@@ -102,8 +102,8 @@ class SpladePair:
 
 
 def load_pair(
-    query_hf_id: str = "naver/efficient-splade-V-large-query",
-    doc_hf_id: str = "naver/efficient-splade-V-large-doc",
+    query_hf_id: str,
+    doc_hf_id: str,
     dtype: str = "float32",
     quantize_bits: int | None = None,
 ) -> SpladePair:

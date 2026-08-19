@@ -21,19 +21,10 @@ REFERENCE_DIR = DATA_DIR / "reference"
 # ---------------------------------------------------------------------------
 # roles: which workload kinds this checkpoint is used for.
 # splade-cocondenser is symmetric (one encoder for queries and docs).
-# efficient-splade-V ("V-SPLADE") is an asymmetric query/doc pair.
 P0_MODELS: dict[str, dict] = {
     "splade-cocondenser-ensembledistil": {
         "hf_id": "naver/splade-cocondenser-ensembledistil",
         "roles": ("query", "doc"),
-    },
-    "efficient-splade-V-large-query": {
-        "hf_id": "naver/efficient-splade-V-large-query",
-        "roles": ("query",),
-    },
-    "efficient-splade-V-large-doc": {
-        "hf_id": "naver/efficient-splade-V-large-doc",
-        "roles": ("doc",),
     },
 }
 

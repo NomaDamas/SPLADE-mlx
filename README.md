@@ -1,6 +1,11 @@
 # SPLADE-mlx
 
-**SPLADE / V-SPLADE sparse retrieval models, natively on Apple Silicon with [MLX](https://github.com/ml-explore/mlx).**
+**SPLADE sparse retrieval models, natively on Apple Silicon with [MLX](https://github.com/ml-explore/mlx).**
+
+> **In progress**: an MLX port of **V-SPLADE** ([arXiv:2605.30917](https://arxiv.org/abs/2605.30917)) —
+> NAVER's inference-free **multimodal** sparse retriever for **visual document retrieval**
+> (`naver/v-splade-{efficient,quality}`, ModernVBERT backbone, Apache-2.0) — including
+> parity validation against visual-document benchmarks (ViDoRe).
 
 ![Inference latency: PyTorch vs MLX on Apple M4 Max](assets/latency_m4max.png)
 
@@ -16,11 +21,10 @@ and SciFact — the ranking is identical, not just close. bf16 and 8-bit stay wi
 
 ## Highlights
 
-- **1.3–4.0x faster at matched precision** (fp32 vs fp32: 1.3–3.4x, bf16 vs MPS fp16:
-  1.3–4.0x); up to **8.9x** vs PyTorch CPU
-- **Single-query encoding in 1.6 ms** (V-SPLADE query encoder, 8-bit) — fast enough for on-device, per-keystroke retrieval
+- **1.3–2.9x faster at matched precision** (fp32 vs fp32 and bf16 vs MPS fp16); up to
+  **7.3x** vs PyTorch CPU
 - **Bit-exact quality** in fp32, verified with three parity gates plus full BEIR evaluations
-- BERT and DistilBERT MLM backbones, asymmetric V-SPLADE query/doc pair API, bf16 / 8-bit / 4-bit quantization
+- BERT and DistilBERT MLM backbones, asymmetric query/doc pair API, bf16 / 8-bit / 4-bit quantization
 - Pre-converted weights ready on the Hugging Face Hub (table below)
 
 Full methodology and tables: [REPORT.md](REPORT.md) · Project plan: [PLAN.md](PLAN.md)
@@ -30,8 +34,6 @@ Full methodology and tables: [REPORT.md](REPORT.md) · Project plan: [PLAN.md](P
 | MLX weights (Hugging Face) | Upstream checkpoint | Backbone | fp32 parity (max logit Δ) | License |
 |---|---|---|---|---|
 | [NomaDamas/splade-cocondenser-ensembledistil-mlx](https://huggingface.co/NomaDamas/splade-cocondenser-ensembledistil-mlx) | [naver/splade-cocondenser-ensembledistil](https://huggingface.co/naver/splade-cocondenser-ensembledistil) | BERT-base | 6.1e-05 | CC BY-NC-SA 4.0 |
-| [NomaDamas/efficient-splade-V-large-query-mlx](https://huggingface.co/NomaDamas/efficient-splade-V-large-query-mlx) | [naver/efficient-splade-V-large-query](https://huggingface.co/naver/efficient-splade-V-large-query) | DistilBERT | 5.2e-05 | CC BY-NC-SA 4.0 |
-| [NomaDamas/efficient-splade-V-large-doc-mlx](https://huggingface.co/NomaDamas/efficient-splade-V-large-doc-mlx) | [naver/efficient-splade-V-large-doc](https://huggingface.co/naver/efficient-splade-V-large-doc) | DistilBERT | 4.1e-05 | CC BY-NC-SA 4.0 |
 | [NomaDamas/splade-v3-mlx](https://huggingface.co/NomaDamas/splade-v3-mlx) | [naver/splade-v3](https://huggingface.co/naver/splade-v3) (gated) | BERT-base | 7.6e-05 | CC BY-NC-SA 4.0 |
 | [NomaDamas/splade-v3-doc-mlx](https://huggingface.co/NomaDamas/splade-v3-doc-mlx) | [naver/splade-v3-doc](https://huggingface.co/naver/splade-v3-doc) (gated) | BERT-base | 4.8e-05 | CC BY-NC-SA 4.0 |
 | [NomaDamas/splade-v3-lexical-mlx](https://huggingface.co/NomaDamas/splade-v3-lexical-mlx) | [naver/splade-v3-lexical](https://huggingface.co/naver/splade-v3-lexical) (gated) | BERT-base | 3.1e-05 | CC BY-NC-SA 4.0 |
@@ -65,11 +67,8 @@ model, tok = load("NomaDamas/splade-v3-mlx")
 enc = tok(["what causes vitamin d deficiency"], return_tensors="np", padding=True)
 sparse = model.encode(mx.array(enc["input_ids"]), mx.array(enc["attention_mask"]))  # (1, 30522)
 
-# Asymmetric V-SPLADE: separate query / document encoders.
-pair = load_pair(
-    "NomaDamas/efficient-splade-V-large-query-mlx",
-    "NomaDamas/efficient-splade-V-large-doc-mlx",
-)
+# Asymmetric pairs (separate query / document encoders), e.g. SPLADE-v3-Doc:
+pair = load_pair("NomaDamas/splade-v3-mlx", "NomaDamas/splade-v3-doc-mlx")
 q = pair.encode_query(["what causes vitamin d deficiency"])
 d = pair.encode_doc(["Vitamin D deficiency is commonly caused by ..."])
 score = q @ d.T  # sparse dot product
@@ -94,14 +93,14 @@ to the MLX port itself — no quantization involved:
 
 | precision | model | workload | PyTorch MPS | MLX | speedup |
 |---|---|---|---|---|---|
-| fp32 | efficient-splade-V-query | query, batch 1 | 4.51 ms | 2.39 ms | **1.89x** |
-| fp32 | efficient-splade-V-query | query, batch 32 | 50.29 ms | 14.78 ms | **3.40x** |
+| fp32 | splade-cocondenser | query, batch 1 | 7.15 ms | 3.96 ms | **1.81x** |
+| fp32 | splade-cocondenser | query, batch 32 | 60.01 ms | 22.64 ms | **2.65x** |
 | fp32 | splade-cocondenser | doc L256, batch 32 | 230.85 ms | 176.96 ms | **1.30x** |
-| fp32 | efficient-splade-V-doc | doc L256, batch 64 | 318.88 ms | 227.83 ms | **1.40x** |
-| 16-bit¹ | efficient-splade-V-query | query, batch 1 | 4.65 ms | 2.08 ms | **2.24x** |
-| 16-bit¹ | efficient-splade-V-query | query, batch 32 | 49.41 ms | 12.37 ms | **3.99x** |
+| fp32 | splade-cocondenser | doc L256, batch 64 | 463.38 ms | 358.86 ms | **1.29x** |
+| 16-bit¹ | splade-cocondenser | query, batch 1 | 6.77 ms | 3.32 ms | **2.04x** |
+| 16-bit¹ | splade-cocondenser | query, batch 32 | 57.21 ms | 20.07 ms | **2.85x** |
+| 16-bit¹ | splade-cocondenser | doc L256, batch 32 | 197.83 ms | 147.03 ms | **1.35x** |
 | 16-bit¹ | splade-cocondenser | doc L256, batch 64 | 393.32 ms | 294.81 ms | **1.33x** |
-| 16-bit¹ | efficient-splade-V-doc | doc L256, batch 64 | 273.49 ms | 186.08 ms | **1.47x** |
 
 ¹ PyTorch runs fp16 on MPS; MLX uses bf16 (its recommended half precision). Same bit
 width, near-identical numerics — both stay within ±0.0014 nDCG@10 of fp32.
@@ -116,11 +115,11 @@ used on the PyTorch side either.
 
 MLX does **not** require quantization — it is an opt-in flag (`quantize_bits=8|4`):
 
-- **8-bit**: best single-query latency — 1.57 ms vs 2.08 ms bf16 (V-SPLADE query,
+- **8-bit**: best single-query latency — 2.51 ms vs 3.32 ms bf16 (splade-cocondenser,
   batch 1). At large batches it is *slower* than bf16 (212.5 ms vs 147.0 ms,
   cocondenser doc L256 batch 32) because dequantization overhead outweighs bandwidth
   savings in compute-bound regimes. Quality stays within +0.0014 nDCG@10.
-- **4-bit**: for memory-constrained deployment (58–85 MB per encoder). Quality dips
+- **4-bit**: for memory-constrained deployment (85 MB for BERT-base). Quality dips
   slightly outside the ±0.002 parity gate on one benchmark cell (−0.0025, NFCorpus /
   SPLADE++) — use only when memory matters more than the last fraction of nDCG.
 - PyTorch bars have no quantized counterpart because there is no practical int8
@@ -132,8 +131,8 @@ MLX does **not** require quantization — it is an opt-in flag (`quantize_bits=8
 Evaluated on two public BEIR benchmarks — **NFCorpus** (3.6k docs, 323 test queries)
 and **SciFact** (5.2k docs, 300 test queries) — by encoding the full corpus with each
 backend and ranking with the sparse dot product (nDCG@10, trec_eval-style linear gain).
-MLX fp32 reproduces the PyTorch fp32 score to the last floating-point digit on all four
-dataset × model cells (see the chart above). Absolute scores match published SPLADE
+MLX fp32 reproduces the PyTorch fp32 score to the last floating-point digit on every
+dataset × model cell (see the chart above). Absolute scores match published SPLADE
 results, which independently validates the pipeline.
 
 ### Reproduce
