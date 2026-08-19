@@ -19,5 +19,6 @@ pythonpath = ["."]
 
 [dependency-groups]
 dev = [
+    "matplotlib>=3.11.1",
     "pytest>=9.1.1",
 ]

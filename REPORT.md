@@ -1,36 +1,41 @@
-# SPLADE / V-SPLADE on Apple Silicon: PyTorch vs MLX 성능 보고서
+# SPLADE / V-SPLADE on Apple Silicon: PyTorch vs MLX Performance Report
 
-**결론: MLX 포팅은 torch 최속 구성(MPS fp16) 대비 1.3~4.0배 빠르고, fp32 기준 검색 품질은
-torch와 소수점 끝자리까지 동일하다.** 특히 V-SPLADE 쿼리 인코딩은 M4 Max에서
-**1.6~2.1ms/query** 로, 온디바이스 실시간 검색에 충분한 수준이다.
+**Bottom line: the MLX port is 1.3–4.0x faster than the fastest PyTorch configuration
+(MPS fp16), and fp32 retrieval quality matches PyTorch to the last floating-point
+digit.** V-SPLADE query encoding runs at **1.6–2.1 ms/query** on an M4 Max — fast
+enough for real-time on-device retrieval.
 
-- 날짜: 2026-08-18
-- 머신: Apple M4 Max (12P+4E, 64GB), macOS 26.5.1
-- 프레임워크: torch 2.13.0 (CPU/MPS) vs mlx 0.32.1
-- 모델: `naver/splade-cocondenser-ensembledistil` (SPLADE++, BERT-base, 대칭),
-  `naver/efficient-splade-V-large-{query,doc}` (**V-SPLADE**, DistilBERT, 비대칭 페어)
-- 원시 데이터: `results/*.json`, 로그: `results/{baseline,mlx}_run.log`
+- Date: 2026-08-18
+- Machine: Apple M4 Max (12P+4E, 64 GB), macOS 26.5.1
+- Frameworks: torch 2.13.0 (CPU/MPS) vs mlx 0.32.1
+- Models: `naver/splade-cocondenser-ensembledistil` (SPLADE++, BERT-base, symmetric),
+  `naver/efficient-splade-V-large-{query,doc}` (**V-SPLADE**, DistilBERT, asymmetric pair)
+- Raw data: `results/*.json`, logs: `results/{baseline,mlx}_run.log`
 
-## 1. 방법론
+## 1. Methodology
 
-- 두 백엔드가 **동일한 입력**(BEIR NFCorpus 실제 텍스트, 동일 토크나이저, `padding="max_length"`)을
-  인코딩. 워크로드: 쿼리 L32 × batch {1,8,32}, 문서 L128/L256 × batch {1,8,32,64}
-- 지연시간 = 인코더 forward + SPLADE pooling. **토크나이즈 제외** (별도 측정: ~0.1ms/쿼리, JSON에 기록)
-- warmup 3회 후 적응형 반복(12~50회, 최대 8초), MPS는 `torch.mps.synchronize()`,
-  MLX는 `mx.eval()`로 lazy evaluation 강제. 측정 간 프로세스 병행 없음(순차 실행)
-- 재현: 아래 §6 커맨드 한 줄씩
+- Both backends encode **identical inputs** (real BEIR NFCorpus texts, same tokenizer,
+  `padding="max_length"`). Workloads: queries L32 × batch {1,8,32}, documents L128/L256
+  × batch {1,8,32,64}
+- Latency = encoder forward + SPLADE pooling. **Tokenization excluded** (measured
+  separately: ~0.1 ms/query, recorded in the JSONs)
+- 3 warm-up iterations, then adaptive repetitions (12–50, up to 8 s);
+  `torch.mps.synchronize()` on MPS, `mx.eval()` on MLX to force lazy evaluation.
+  No concurrent processes during measurement (all runs sequential)
+- Reproduction: one command per step, see §6
 
-## 2. 정합성 (같은 모델임의 증명)
+## 2. Correctness (proof that it is the same model)
 
-**수치 파리티 — `uv run pytest tests/` 9/9 통과** (3모델 × 3게이트):
+**Numeric parity — `uv run pytest tests/` 9/9 passed** (3 models × 3 gates):
 
-| 게이트 | 기준 | 결과 |
+| Gate | Threshold | Result |
 |---|---|---|
-| MLM 로짓 (fp32) | max \|Δ\| < 1e-3 | 통과 (3모델 모두) |
-| Sparse vector cosine | ≥ 0.9999 | 통과 |
-| top-64 term 일치율 | ≥ 99% | 통과 |
+| MLM logits (fp32) | max \|Δ\| < 1e-3 | passed (all 3 models) |
+| Sparse-vector cosine | ≥ 0.9999 | passed |
+| Top-64 term overlap | ≥ 99% | passed |
 
-**검색 품질 nDCG@10** (BEIR 전체 코퍼스 인코딩 → brute-force dot product, 게이트 ±0.002 vs torch fp32):
+**Retrieval quality, nDCG@10** (full BEIR corpus encoding → brute-force dot-product
+ranking; gate: ±0.002 vs torch fp32):
 
 | dataset | model | torch fp32 | mlx fp32 | mlx bf16 | mlx q8 | mlx q4 |
 |---|---|---|---|---|---|---|
@@ -39,15 +44,19 @@ torch와 소수점 끝자리까지 동일하다.** 특히 V-SPLADE 쿼리 인코
 | SciFact | splade-cocondenser | 0.7024 | **0.7024 (±0.0000)** | +0.0004 | +0.0014 | −0.0002 |
 | SciFact | efficient-splade-V | 0.6823 | **0.6823 (±0.0000)** | +0.0008 | +0.0001 | +0.0038 |
 
-- **mlx-float32은 torch와 nDCG가 부동소수점 끝자리까지 동일** — 랭킹이 완전히 일치
-- bf16/q8: 전 구간 ±0.0014 이내 → 게이트 통과
-- q4: NFCorpus cocondenser에서 −0.0025로 게이트를 근소하게 벗어남 → "품질 트레이드오프 옵션"으로만 제공
-- 절대값이 공개된 BEIR 수치(NFCorpus ~0.35, SciFact ~0.70)와 일치 → 파이프라인 자체의 타당성 교차 확인
+- **mlx-float32 matches torch nDCG to the last floating-point digit** — the ranking is
+  fully identical
+- bf16/q8: within ±0.0014 everywhere → gate passed
+- q4: narrowly misses the gate on NFCorpus/cocondenser (−0.0025) → offered only as a
+  quality/speed trade-off option
+- Absolute scores match published BEIR numbers (NFCorpus ~0.35, SciFact ~0.70),
+  independently validating the pipeline itself
 
-## 3. 지연시간 / 처리량
+## 3. Latency / throughput
 
-(전체 표는 `results/comparison_tables.md`. 아래 speedup은 **torch 최속 구성인 MPS fp16 대비** best-MLX —
-양자화 구성 포함이므로 표시된 열보다 빠른 구성이 기준일 수 있음)
+(Full tables: `results/comparison_tables.md`. Speedups below are best-MLX vs the
+**fastest torch configuration, MPS fp16** — quantized configs included, so the
+reference may be a config not shown in the row)
 
 ### splade-cocondenser-ensembledistil (BERT-base, 110M)
 
@@ -59,7 +68,7 @@ torch와 소수점 끝자리까지 동일하다.** 특히 V-SPLADE 쿼리 인코
 | doc-L256-B32 | 822.96 ms | 197.83 ms | 176.96 ms | 147.03 ms | 151.65 ms | **1.35x** |
 | doc-L256-B64 | 1600.12 ms | 393.32 ms | 358.86 ms | 294.81 ms | 294.41 ms | **1.34x** |
 
-### efficient-splade-V-large-query (V-SPLADE 쿼리 인코더, DistilBERT)
+### efficient-splade-V-large-query (V-SPLADE query encoder, DistilBERT)
 
 | workload | torch cpu fp32 | torch mps fp16 | mlx bf16+compile | mlx q8 | **speedup** |
 |---|---|---|---|---|---|
@@ -67,7 +76,7 @@ torch와 소수점 끝자리까지 동일하다.** 특히 V-SPLADE 쿼리 인코
 | query-L32-B8 | 23.10 ms | 14.94 ms | 4.17 ms | 4.82 ms | **3.59x** |
 | query-L32-B32 | 68.69 ms | 49.41 ms | 12.22 ms | 16.65 ms | **4.04x** |
 
-### efficient-splade-V-large-doc (V-SPLADE 문서 인코더, DistilBERT)
+### efficient-splade-V-large-doc (V-SPLADE document encoder, DistilBERT)
 
 | workload | torch cpu fp32 | torch mps fp16 | mlx bf16 | mlx bf16+compile | **speedup** |
 |---|---|---|---|---|---|
@@ -75,61 +84,70 @@ torch와 소수점 끝자리까지 동일하다.** 특히 V-SPLADE 쿼리 인코
 | doc-L256-B1 | 24.52 ms | 7.46 ms | 4.27 ms | 4.23 ms | **1.77x** |
 | doc-L256-B64 | 1032.40 ms | 273.49 ms | 186.08 ms | 179.66 ms | **1.52x** |
 
-**처리량 하이라이트** (V-SPLADE, bf16+compile): 쿼리 **2,618 q/s** (L32-B32, 12.22ms/32),
-단건 쿼리는 q8에서 **1.57ms** (637 q/s), 문서 인코딩 **716 docs/s** (L128-B32, 44.68ms/32).
+**Throughput highlights** (V-SPLADE, bf16+compile): **2,618 queries/s** (L32-B32,
+12.22 ms / 32), single-query latency **1.57 ms** with q8 (637 q/s), document encoding
+**716 docs/s** (L128-B32, 44.68 ms / 32).
 
-## 4. 메모리
+## 4. Memory
 
-측정 기준이 다름에 유의: torch는 **프로세스 RSS(모델 로드 후)**, MLX는 **MLX active memory(가중치)**.
+Note the metrics differ: torch numbers are **process RSS after model load**, MLX
+numbers are **MLX active memory (weights)**.
 
-| 모델 | torch mps fp16 (RSS) | mlx bf16 (active) | mlx q4 (active) |
+| model | torch mps fp16 (RSS) | mlx bf16 (active) | mlx q4 (active) |
 |---|---|---|---|
 | splade-cocondenser | 621 MB | 266 MB | 85 MB |
 | efficient-splade-V (per encoder) | ~795 MB | 181 MB | 58 MB |
 
-q4 양자화 시 V-SPLADE 인코더 하나가 **58MB** — 쿼리+문서 페어를 합쳐도 120MB 이내.
+With q4 quantization a single V-SPLADE encoder is **58 MB** — the full query+doc pair
+fits in under 120 MB.
 
-## 5. 관찰
+## 5. Observations
 
-1. **작은 배치·짧은 시퀀스일수록 MLX 우위가 큼** (쿼리 B1~B32에서 2.7~4.0x). MPS 백엔드의
-   커널 디스패치 오버헤드가 작업이 작을수록 상대적으로 커지기 때문. 검색 서비스의 실제
-   병목인 "쿼리 1건 지연"에서 이득이 가장 크다는 뜻.
-2. **bf16이 sweet spot**: fp32 대비 ~15-20% 빠르고 품질 열화 없음(±0.0014).
-3. **`mx.compile` 효과는 소폭**(0~6%): 이미 커널이 큰 GEMM 위주라 그래프 오버헤드가 작음.
-4. **q8/q4는 batch=1 전용 최적화**: B1에선 최속(1.57ms)이지만 배치가 커지면
-   dequant 오버헤드로 bf16보다 느려짐. compute-bound 구간에서는 비양자화가 유리.
-5. torch CPU fp32 대비로는 **4.5~8.9x**.
-6. V-SPLADE의 설계 의도(쿼리 인코더 경량화)가 MLX에서 그대로 재현됨:
-   쿼리 인코딩이 cocondenser 대비 ~1.6x 빠름 (DistilBERT 6층 vs BERT 12층).
+1. **MLX's advantage grows as batches get smaller and sequences shorter** (2.7–4.0x for
+   queries at B1–B32). The MPS backend's kernel-dispatch overhead weighs more on small
+   workloads — which is exactly the "single-query latency" that bottlenecks real search
+   services.
+2. **bf16 is the sweet spot**: ~15–20% faster than fp32 with no measurable quality loss
+   (±0.0014).
+3. **`mx.compile` helps only modestly** (0–6%): the workload is dominated by large GEMM
+   kernels, so graph overhead is already small.
+4. **q8/q4 are batch-1 specializations**: fastest at B1 (1.57 ms) but slower than bf16
+   at larger batches due to dequantization overhead in compute-bound regimes.
+5. Versus torch CPU fp32 the speedup is **4.5–8.9x**.
+6. V-SPLADE's design intent (a lightweight query encoder) carries over to MLX: query
+   encoding is ~1.6x faster than cocondenser (6-layer DistilBERT vs 12-layer BERT).
 
-## 6. 재현
+## 6. Reproduction
 
 ```bash
 uv sync
-uv run python -m bench.save_reference                      # 파리티 레퍼런스 (torch fp32)
+uv run python -m bench.save_reference                      # parity references (torch fp32)
 uv run python -m bench.bench_torch --backend cpu --dtype fp32
 uv run python -m bench.bench_torch --backend mps --dtype fp32
 uv run python -m bench.bench_torch --backend mps --dtype fp16
-uv run pytest tests/                                       # 수치 파리티 9게이트
-uv run python -m bench.eval_beir                           # nDCG@10 품질 파리티
+uv run pytest tests/                                       # 9 numeric parity gates
+uv run python -m bench.eval_beir                           # nDCG@10 quality parity
 uv run python -m bench.bench_mlx --dtype float32           # (bfloat16 / --compile / --quantize-bits 8|4)
-uv run python -m bench.report                              # 비교 표 생성
+uv run python -m bench.report                              # comparison tables
 ```
 
-MLX 모델 사용 예:
+Using the MLX models:
 
 ```python
 from splade_mlx import load, load_pair
 
 model, tok = load("naver/splade-cocondenser-ensembledistil", dtype="bfloat16")
-pair = load_pair()          # V-SPLADE 비대칭 쿼리/문서 페어
+pair = load_pair()          # asymmetric V-SPLADE query/doc pair
 q = pair.encode_query(["what causes vitamin d deficiency"])   # (1, 30522) sparse
 ```
 
-## 7. 한계 및 후속 과제
+## 7. Limitations and follow-ups
 
-- naver SPLADE 가중치는 CC BY-NC-SA 4.0(비상업). 변환 가중치 재배포 시 라이선스 검토 필요
-  (Apache-2.0 대안: `prithivida/Splade_PP_en_v1`)
-- `naver/splade-v3` 는 HF gated — DistilBERT 지원은 이미 완료라 약관 동의만 하면 즉시 포팅 가능
-- Stretch: mlx-embeddings upstream PR, VI-BT(BERT-tiny 쿼리 인코더, sub-ms 쿼리 인코딩) 데모,
-  top-k sparse 출력 + inverted index 로컬 검색 데모
+- The naver SPLADE weights are CC BY-NC-SA 4.0 (non-commercial). Redistribution of the
+  converted weights requires the same license and attribution (done for the
+  NomaDamas/*-mlx uploads); an Apache-2.0 alternative is `prithivida/Splade_PP_en_v1`.
+- `naver/splade-v3` is gated on the HF hub — DistilBERT support already exists, so
+  porting only requires accepting the terms (done; see the NomaDamas uploads).
+- Stretch goals: an mlx-embeddings upstream PR, a VI-BT demo (BERT-tiny query encoder,
+  sub-ms query encoding), and a local end-to-end search demo with top-k sparse output
+  plus an inverted index.
