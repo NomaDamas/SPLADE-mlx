@@ -52,6 +52,14 @@ MODELS = [
         "quality": "BEIR quality parity vs PyTorch fp32 (query+doc pair): nDCG@10 delta +0.0009 (NFCorpus) / +0.0008 (SciFact) in bfloat16.",
     },
     {
+        "src": "naver/splade-v3-distilbert",
+        "dst": "NomaDamas/splade-v3-distilbert-mlx",
+        "license": "cc-by-nc-sa-4.0",
+        "nc": True,
+        "desc": "SPLADE-v3 DistilBERT variant: symmetric sparse encoder for queries and documents.",
+        "quality": "fp32 parity vs PyTorch: max |logit delta| 5.8e-05, sparse cosine 1.000000, top-64 term overlap 100%.",
+    },
+    {
         "src": "prithivida/Splade_PP_en_v1",
         "dst": "NomaDamas/Splade_PP_en_v1-mlx",
         "license": "apache-2.0",
@@ -114,11 +122,19 @@ APACHE_BODY = "Apache-2.0, same as the upstream checkpoint."
 
 
 def main() -> None:
+    import argparse
+
     from huggingface_hub import HfApi
     from transformers import AutoTokenizer
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--only", help="substring filter on src/dst; publish only matching models")
+    args = parser.parse_args()
+
     api = HfApi()
     for spec in MODELS:
+        if args.only and args.only not in spec["src"] and args.only not in spec["dst"]:
+            continue
         name = spec["dst"].split("/")[-1]
         print(f"=== {spec['dst']}", flush=True)
         src_dir = _resolve(spec["src"], DTYPE, DEFAULT_OUT_DIR)
