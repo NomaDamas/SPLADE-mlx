@@ -1,0 +1,33 @@
+{
+  "backend": "torch_cpu",
+  "dtype": "fp32",
+  "machine": "macOS-26.5.1-arm64-arm-64bit",
+  "chip": "Apple M4 Max 16c/64GB",
+  "model": "naver/v-splade-efficient",
+  "workloads": {
+    "pages-B1": {
+      "iters": 12,
+      "mean_ms": 2025.9409410743197,
+      "p50_ms": 2026.9841459812596,
+      "p95_ms": 2058.684749994427,
+      "pages_per_s": 0.4935978042231173
+    },
+    "pages-B4": {
+      "iters": 12,
+      "mean_ms": 7557.041822738635,
+      "p50_ms": 7561.326479015406,
+      "p95_ms": 7658.395125064999,
+      "pages_per_s": 0.5293076436290542
+    },
+    "pages-B8": {
+      "iters": 12,
+      "mean_ms": 15364.279423491098,
+      "p50_ms": 15422.229478950612,
+      "p95_ms": 15612.919125007465,
+      "pages_per_s": 0.520688265260814
+    }
+  },
+  "preprocess_1page_ms": 24.881575000472367,
+  "tiles_per_page": 17,
+  "seq_len_1page": 1136
+}

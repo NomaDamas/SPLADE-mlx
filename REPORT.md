@@ -41,13 +41,18 @@ variants. bf16 passes the ±0.002 gate for `efficient` and misses it narrowly fo
 `quality` — fp32 is the default; bf16 is a deliberate trade-off.
 
 **Latency** (document-page encoding: vision+text+SPLADE head; preprocessing ~39 ms/page
-on CPU measured separately; matched precision):
+on CPU measured separately):
 
-| batch (pages) | torch MPS fp32 | MLX fp32 | MLX bf16 | speedup (bf16) |
-|---|---|---|---|---|
-| 1 | 446.4 ms | 383.4 ms | 376.2 ms | **1.19x** |
-| 4 | 1734.9 ms | 1515.6 ms | 1480.3 ms | **1.17x** |
-| 8 | 3454.5 ms | 3028.7 ms | 2957.5 ms | **1.17x** |
+| batch (pages) | torch CPU fp32 | torch MPS fp32 | MLX fp32 | MLX bf16 | bf16 vs MPS | bf16 vs CPU |
+|---|---|---|---|---|---|---|
+| 1 | 2025.9 ms | 446.4 ms | 383.4 ms | 376.2 ms | **1.19x** | **5.39x** |
+| 4 | 7557.0 ms | 1734.9 ms | 1515.6 ms | 1480.3 ms | **1.17x** | **5.10x** |
+| 8 | 15364.3 ms | 3454.5 ms | 3028.7 ms | 2957.5 ms | **1.17x** | **5.19x** |
+
+Why the MPS→MLX gap is smaller here than for text queries: a page expands to 13 image
+tiles and an 871-token sequence, so the workload is dominated by large GEMMs where both
+backends saturate the GPU (compute-bound) — the dispatch-overhead advantage that drives
+the 2–4x text-query gains matters little. Versus CPU the MLX port is ~5.2–5.4x faster.
 
 Queries cost **~6 µs** (static lookup) — no neural encoding, which is the core
 efficiency property of V-SPLADE and carries over unchanged to the MLX port.

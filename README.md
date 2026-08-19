@@ -2,20 +2,37 @@
 
 **SPLADE sparse retrieval models — text *and* visual — natively on Apple Silicon with [MLX](https://github.com/ml-explore/mlx).**
 
-Includes the first MLX port of **V-SPLADE** ([arXiv:2605.30917](https://arxiv.org/abs/2605.30917)):
-NAVER's inference-free **multimodal** sparse retriever for **visual document retrieval**
-— retrieving rendered document pages (PDFs, slides, scans) from text queries.
+- **Text SPLADE**: **1.3–2.9x faster** than PyTorch MPS at matched precision (up to
+  **7.3x** vs CPU), with fp32 retrieval quality identical to PyTorch on BEIR.
+- **V-SPLADE** ([arXiv:2605.30917](https://arxiv.org/abs/2605.30917)): the first MLX port of
+  NAVER's inference-free **multimodal** sparse retriever for visual document retrieval —
+  bit-exact fp32 parity on ViDoRe, ~6 µs inference-free queries (section below).
+
+## Text SPLADE (naver/splade-v3 family, splade-cocondenser, ...)
+
+![Inference latency: PyTorch vs MLX on Apple M4 Max](assets/latency_m4max.png)
+
+![Retrieval quality is preserved](assets/quality_parity.png)
+
+*All numbers above are measured on an Apple M4 Max (12P+4E, 64 GB). The latency chart
+compares **matched precision only** (fp32 vs fp32, fp16 vs bf16), so the speedup is
+attributable to MLX itself — not to quantization. Quantization is an optional extra
+(it helps at batch 1, and is actually slower than bf16 at large batches). MLX fp32
+reproduces the PyTorch fp32 nDCG@10 to the last floating-point digit on BEIR NFCorpus
+and SciFact — the ranking is identical, not just close. bf16 and 8-bit stay within
+±0.0014.*
+
+## V-SPLADE (visual document retrieval) — naver/v-splade-{efficient,quality}
 
 ![V-SPLADE document-page encoding: PyTorch vs MLX on Apple M4 Max](assets/vsplade_latency.png)
 
 ![ViDoRe nDCG@5 parity](assets/vsplade_quality.png)
 
-*Measured on an Apple M4 Max (12P+4E, 64 GB). V-SPLADE document encoding is 1.17–1.19x
-faster in MLX at matched precision, and **fp32 reproduces the PyTorch ViDoRe nDCG@5
-to the last floating-point digit** (Δ = 0.0000, both variants). Queries are
-inference-free: a static vocabulary lookup (~6 µs) — no neural encoding at all.*
-
-## V-SPLADE (visual document retrieval) — naver/v-splade-{efficient,quality}
+*Measured on an Apple M4 Max (12P+4E, 64 GB). V-SPLADE document-page encoding is
+**1.17–1.19x faster than PyTorch MPS** at matched precision and **~5.2–5.4x faster
+than PyTorch CPU**, and fp32 reproduces the PyTorch ViDoRe nDCG@5 to the last
+floating-point digit (Δ = 0.0000, both variants). Queries are inference-free: a static
+vocabulary lookup (~6 µs) — no neural encoding at all.*
 
 | MLX weights | Upstream | fp32 parity (max logit Δ) | ViDoRe docvqa nDCG@5 (fp32) | License |
 |---|---|---|---|---|
@@ -52,20 +69,6 @@ score = d @ qw.T  # sparse dot product — inverted-index compatible
 Note on half precision: MLX bf16 stays within the ±0.002 nDCG gate for `efficient`
 (+0.0002) but lands just outside it for `quality` (−0.0024). Use fp32 for exact parity;
 bf16 only when the small speed gain matters more than the last 0.2pp of nDCG.
-
-## Text SPLADE (naver/splade-v3 family, splade-cocondenser, ...)
-
-![Inference latency: PyTorch vs MLX on Apple M4 Max](assets/latency_m4max.png)
-
-![Retrieval quality is preserved](assets/quality_parity.png)
-
-*All numbers above are measured on an Apple M4 Max (12P+4E, 64 GB). The latency chart
-compares **matched precision only** (fp32 vs fp32, fp16 vs bf16), so the speedup is
-attributable to MLX itself — not to quantization. Quantization is an optional extra
-(it helps at batch 1, and is actually slower than bf16 at large batches). MLX fp32
-reproduces the PyTorch fp32 nDCG@10 to the last floating-point digit on BEIR NFCorpus
-and SciFact — the ranking is identical, not just close. bf16 and 8-bit stay within
-±0.0014.*
 
 ## Highlights
 
