@@ -56,7 +56,10 @@ ranking; gate: ±0.002 vs torch fp32):
 
 (Full tables: `results/comparison_tables.md`. Speedups below are best-MLX vs the
 **fastest torch configuration, MPS fp16** — quantized configs included, so the
-reference may be a config not shown in the row)
+reference may be a config not shown in the row. For a strictly precision-matched
+comparison — fp32 vs fp32: 1.30–3.40x, MPS fp16 vs MLX bf16: 1.33–3.99x — see the
+README benchmark section; the conclusion is unchanged, the port itself is faster
+without any quantization.)
 
 ### splade-cocondenser-ensembledistil (BERT-base, 110M)
 
