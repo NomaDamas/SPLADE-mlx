@@ -1,0 +1,7 @@
+naver/splade-v3: max|logit delta|=7.63e-05  min cosine=1.000000  topk overlap=1.0000
+PARITY_OK naver/splade-v3
+naver/splade-v3-doc: max|logit delta|=4.77e-05  min cosine=1.000000  topk overlap=1.0000
+PARITY_OK naver/splade-v3-doc
+naver/splade-v3-lexical: max|logit delta|=3.05e-05  min cosine=1.000000  topk overlap=1.0000
+PARITY_OK naver/splade-v3-lexical
+ALL_PARITY_DONE
