@@ -1,4 +1,9 @@
-"""splade_mlx: SPLADE / V-SPLADE sparse retrieval models on Apple Silicon (MLX)."""
+"""splade_mlx: SPLADE and V-SPLADE sparse retrieval models on Apple Silicon (MLX).
+
+- Text SPLADE (BERT/DistilBERT): :func:`load`, :func:`load_pair`
+- V-SPLADE visual document retrieval (ModernVBERT, arXiv:2605.30917):
+  :func:`splade_mlx.convert_vsplade.load_vsplade`
+"""
 
 from __future__ import annotations
 

@@ -1,0 +1,7 @@
+{
+  "naver/v-splade-efficient": {
+    "torch-mps-fp32": 0.40977391461043283,
+    "mlx-float32": 0.40977391461043283,
+    "mlx-bfloat16": 0.40996211191937104
+  }
+}

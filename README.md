@@ -2,10 +2,15 @@
 
 **SPLADE sparse retrieval models, natively on Apple Silicon with [MLX](https://github.com/ml-explore/mlx).**
 
-> **In progress**: an MLX port of **V-SPLADE** ([arXiv:2605.30917](https://arxiv.org/abs/2605.30917)) —
-> NAVER's inference-free **multimodal** sparse retriever for **visual document retrieval**
-> (`naver/v-splade-{efficient,quality}`, ModernVBERT backbone, Apache-2.0) — including
-> parity validation against visual-document benchmarks (ViDoRe).
+> **V-SPLADE (visual) port landed**: this repository now includes an MLX port of
+> NAVER's inference-free **multimodal** sparse retriever for **visual document
+> retrieval** ([arXiv:2605.30917](https://arxiv.org/abs/2605.30917),
+> `naver/v-splade-{efficient,quality}`, ModernVBERT backbone, Apache-2.0):
+> SigLIP vision tower + pixel-shuffle connector + ModernBERT encoder + SPLADE head,
+> with an inference-free static query lookup. fp32 parity vs PyTorch: max logit delta
+> 1.5e-04 (efficient) / 6.4e-04 (quality), cosine 1.000000; ViDoRe `docvqa` nDCG@5
+> identical to the torch fp32 reference (see [REPORT.md](REPORT.md)).
+> API: `splade_mlx.convert_vsplade.load_vsplade` (full docs ship with the next update).
 
 ![Inference latency: PyTorch vs MLX on Apple M4 Max](assets/latency_m4max.png)
 
