@@ -26,32 +26,34 @@ MLX_C = "#0a84ff"
 def latency_chart() -> None:
     runs = {
         k: json.loads((RESULTS / f"vsplade_{k}.json").read_text())
-        for k in ("torch_fp32", "mlx_float32", "mlx_bfloat16")
+        for k in ("torch_cpu_fp32", "torch_fp32", "mlx_float32", "mlx_bfloat16")
     }
     batches = ["pages-B1", "pages-B4", "pages-B8"]
-    fig, ax = plt.subplots(figsize=(9.5, 4.2))
-    w = 0.27
+    fig, ax = plt.subplots(figsize=(10.5, 4.4))
+    w = 0.2
     series = [
+        ("torch_cpu_fp32", "PyTorch CPU fp32", "#9aa0a6"),
         ("torch_fp32", "PyTorch MPS fp32", TORCH_C),
         ("mlx_float32", "MLX fp32", MLX_C),
         ("mlx_bfloat16", "MLX bf16", "#30b0c7"),
     ]
     for ci, (key, label, color) in enumerate(series):
-        xs = [i + (ci - 1) * w for i in range(len(batches))]
+        xs = [i + (ci - 1.5) * w for i in range(len(batches))]
         ys = [runs[key]["workloads"][b]["mean_ms"] for b in batches]
         bars = ax.bar(xs, ys, w, label=label, color=color)
         ax.bar_label(bars, fmt="%.0f", fontsize=8, padding=2)
-    # speedup annotations (mlx bf16 vs torch fp32)
+    # speedup annotations: MLX bf16 vs MPS fp32 and vs CPU fp32
     for i, b in enumerate(batches):
-        t = runs["torch_fp32"]["workloads"][b]["mean_ms"]
+        cpu = runs["torch_cpu_fp32"]["workloads"][b]["mean_ms"]
+        mps = runs["torch_fp32"]["workloads"][b]["mean_ms"]
         m = runs["mlx_bfloat16"]["workloads"][b]["mean_ms"]
         ax.annotate(
-            f"{t / m:.2f}x",
-            (i + w, m),
+            f"{mps / m:.2f}x vs MPS\n{cpu / m:.1f}x vs CPU",
+            (i + 1.5 * w, m),
             textcoords="offset points",
-            xytext=(0, 16),
+            xytext=(0, 18),
             ha="center",
-            fontsize=9,
+            fontsize=8,
             color="#30b0c7",
             fontweight="bold",
         )

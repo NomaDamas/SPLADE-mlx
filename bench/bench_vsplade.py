@@ -65,14 +65,17 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", choices=["torch", "mlx"], required=True)
     parser.add_argument("--dtype", default=None)
+    parser.add_argument("--device", choices=["mps", "cpu"], default="mps",
+                        help="torch backend device")
     args = parser.parse_args()
     dtype = args.dtype or ("fp32" if args.backend == "torch" else "float32")
+    device = args.device
 
     processor = AutoProcessor.from_pretrained(HF_ID)
     pages = [make_page(i) for i in range(max(BATCHES))]
 
     results = {
-        "backend": args.backend,
+        "backend": args.backend if args.backend == "mlx" else f"torch_{args.device}",
         "dtype": dtype,
         "machine": platform.platform(),
         "chip": "Apple M4 Max 16c/64GB",
@@ -93,18 +96,19 @@ def main() -> None:
         from transformers import AutoModelForMaskedLM
 
         model = AutoModelForMaskedLM.from_pretrained(HF_ID, trust_remote_code=True, dtype=torch.float32)
-        model.eval().to("mps")
+        model.eval().to(device)
 
         def make_fn(enc):
-            ids = enc["input_ids"].to("mps")
-            am = enc["attention_mask"].to("mps")
-            pv = enc["pixel_values"].to("mps")
+            ids = enc["input_ids"].to(device)
+            am = enc["attention_mask"].to(device)
+            pv = enc["pixel_values"].to(device)
 
             def fn():
                 with torch.inference_mode():
                     out = model(input_ids=ids, attention_mask=am, pixel_values=pv).logits
                     sparse = (torch.log1p(torch.relu(out)) * am.unsqueeze(-1)).max(dim=1).values
-                torch.mps.synchronize()
+                if device == "mps":
+                    torch.mps.synchronize()
                 return sparse
 
             return fn
@@ -164,7 +168,7 @@ def main() -> None:
         print(f"  query lookup  {qstats['mean_ms'] * 1e3:.1f} us/query", flush=True)
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    out = RESULTS_DIR / f"vsplade_{args.backend}_{dtype}.json"
+    out = RESULTS_DIR / f"vsplade_{args.backend if args.backend == 'mlx' else f'torch_{args.device}'}_{dtype}.json"
     out.write_text(json.dumps(results, indent=2))
     print(f"wrote {out}", flush=True)
 
