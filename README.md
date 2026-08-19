@@ -81,23 +81,60 @@ model, tok = load("NomaDamas/splade-v3-mlx", quantize_bits=8)
 ## Benchmarks
 
 Measured with an identical harness on both frameworks: same tokenizer, same real
-NFCorpus texts, fixed-length padding, warm-up plus adaptive repetitions, and explicit
-synchronization (`torch.mps.synchronize()` / `mx.eval()`). Tokenization time is
-excluded and reported separately. Selected results (full grid in
-[REPORT.md](REPORT.md) and `results/*.json`):
+NFCorpus texts, fixed-length padding, warm-up plus adaptive repetitions (12–50, up to
+8 s per config), and explicit synchronization (`torch.mps.synchronize()` /
+`mx.eval()`). Tokenization time is excluded and reported separately (~0.1 ms/query).
+Nothing else ran during measurement; all configs were executed sequentially. Full grid:
+[REPORT.md](REPORT.md) and `results/*.json`.
 
-| model | workload | PyTorch MPS fp16 | best MLX | speedup |
-|---|---|---|---|---|
-| efficient-splade-V-query | query, batch 1 | 4.65 ms | 1.57 ms (8-bit) | **2.96x** |
-| efficient-splade-V-query | query, batch 32 | 49.41 ms | 12.22 ms (bf16+compile) | **4.04x** |
-| efficient-splade-V-doc | doc L256, batch 64 | 273.49 ms | 179.66 ms (bf16+compile) | **1.52x** |
-| splade-cocondenser | query, batch 1 | 6.77 ms | 2.51 ms (8-bit) | **2.70x** |
-| splade-cocondenser | doc L256, batch 64 | 393.32 ms | 294.41 ms (bf16) | **1.34x** |
+### Matched precision (the fair comparison)
 
-Quality was evaluated on two public BEIR benchmarks — **NFCorpus** (3.6k docs, 323 test
-queries) and **SciFact** (5.2k docs, 300 test queries) — by encoding the full corpus and
-ranking with the sparse dot product (nDCG@10, trec_eval-style linear gain). Absolute
-scores match published SPLADE results, which independently validates the pipeline.
+Both sides run at the **same numeric precision**, so the speedup below is attributable
+to the MLX port itself — no quantization involved:
+
+| precision | model | workload | PyTorch MPS | MLX | speedup |
+|---|---|---|---|---|---|
+| fp32 | efficient-splade-V-query | query, batch 1 | 4.51 ms | 2.39 ms | **1.89x** |
+| fp32 | efficient-splade-V-query | query, batch 32 | 50.29 ms | 14.78 ms | **3.40x** |
+| fp32 | splade-cocondenser | doc L256, batch 32 | 230.85 ms | 176.96 ms | **1.30x** |
+| fp32 | efficient-splade-V-doc | doc L256, batch 64 | 318.88 ms | 227.83 ms | **1.40x** |
+| 16-bit¹ | efficient-splade-V-query | query, batch 1 | 4.65 ms | 2.08 ms | **2.24x** |
+| 16-bit¹ | efficient-splade-V-query | query, batch 32 | 49.41 ms | 12.37 ms | **3.99x** |
+| 16-bit¹ | splade-cocondenser | doc L256, batch 64 | 393.32 ms | 294.81 ms | **1.33x** |
+| 16-bit¹ | efficient-splade-V-doc | doc L256, batch 64 | 273.49 ms | 186.08 ms | **1.47x** |
+
+¹ PyTorch runs fp16 on MPS; MLX uses bf16 (its recommended half precision). Same bit
+width, near-identical numerics — both stay within ±0.0014 nDCG@10 of fp32.
+
+The gap widens as workloads get smaller (batch 1–32 queries): MPS kernel-dispatch
+overhead dominates small launches, which is exactly the single-query path that
+bottlenecks interactive search. `mx.compile` adds only another 0–6% on top (large GEMMs
+dominate), and is excluded from the table above for symmetry — no `torch.compile` was
+used on the PyTorch side either.
+
+### Quantization (optional extra, not part of the comparison above)
+
+MLX does **not** require quantization — it is an opt-in flag (`quantize_bits=8|4`):
+
+- **8-bit**: best single-query latency — 1.57 ms vs 2.08 ms bf16 (V-SPLADE query,
+  batch 1). At large batches it is *slower* than bf16 (212.5 ms vs 147.0 ms,
+  cocondenser doc L256 batch 32) because dequantization overhead outweighs bandwidth
+  savings in compute-bound regimes. Quality stays within +0.0014 nDCG@10.
+- **4-bit**: for memory-constrained deployment (58–85 MB per encoder). Quality dips
+  slightly outside the ±0.002 parity gate on one benchmark cell (−0.0025, NFCorpus /
+  SPLADE++) — use only when memory matters more than the last fraction of nDCG.
+- PyTorch bars have no quantized counterpart because there is no practical int8
+  inference path on the MPS backend; this asymmetry is why quantized results are kept
+  out of the headline comparison.
+
+### Quality
+
+Evaluated on two public BEIR benchmarks — **NFCorpus** (3.6k docs, 323 test queries)
+and **SciFact** (5.2k docs, 300 test queries) — by encoding the full corpus with each
+backend and ranking with the sparse dot product (nDCG@10, trec_eval-style linear gain).
+MLX fp32 reproduces the PyTorch fp32 score to the last floating-point digit on all four
+dataset × model cells (see the chart above). Absolute scores match published SPLADE
+results, which independently validates the pipeline.
 
 ### Reproduce
 
