@@ -143,6 +143,7 @@ def main() -> None:
             "preprocessor_config.json",
             "processor_config.json",
             "chat_template.jinja",
+            "LICENSE",  # Apache-2.0 Section 4(a): ship the license text with the weights
         ):
             shutil.copy(hf_hub_download(src, name), staging / name)
         s = stats[variant]
