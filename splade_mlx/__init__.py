@@ -19,6 +19,19 @@ from .models.bert import BertConfig, SpladeModel
 
 __all__ = ["load", "load_pair", "to_numpy", "SpladeModel", "SpladePair"]
 
+# Real tokenizer artifacts. config.json / tokenizer_config.json alone are not
+# enough: AutoTokenizer.from_pretrained() will then instantiate an empty BERT
+# tokenizer (vocab_size == 5) instead of raising.
+_TOKENIZER_ARTIFACTS = (
+    "tokenizer.json",
+    "vocab.txt",
+    "tokenizer.model",
+    "spiece.model",
+    "sentencepiece.bpe.model",
+)
+_MIN_TOKENIZER_VOCAB = 1000
+
+
 
 def _resolve(model: str, dtype: str | None, out_dir: Path) -> Path:
     """Return a local dir containing MLX-format weights.safetensors + config.json.
@@ -50,6 +63,29 @@ def _resolve(model: str, dtype: str | None, out_dir: Path) -> Path:
         if plain != dest:
             plain.rename(dest)
     return dest
+
+
+def _has_tokenizer_files(path: Path) -> bool:
+    return any((path / name).is_file() for name in _TOKENIZER_ARTIFACTS)
+
+
+def _tokenizer_source(dest: Path, hf_id: str) -> str | Path:
+    """Prefer a self-contained tokenizer in `dest`; otherwise the upstream id."""
+    if _has_tokenizer_files(dest):
+        return dest
+    if not hf_id:
+        raise ValueError(f"{dest} has no tokenizer files and no upstream hf_id")
+    return hf_id
+
+
+def _load_tokenizer(dest: Path, hf_id: str):
+    from transformers import AutoTokenizer
+
+    source = _tokenizer_source(dest, hf_id)
+    tokenizer = AutoTokenizer.from_pretrained(source)
+    if tokenizer.vocab_size < _MIN_TOKENIZER_VOCAB and source != hf_id:
+        tokenizer = AutoTokenizer.from_pretrained(hf_id)
+    return tokenizer
 
 
 def _stored_dtype(dest: Path, requested_dtype: str | None) -> str:
@@ -88,8 +124,6 @@ def load(
     Returns (model, tokenizer). Tokenizer is the HF fast tokenizer so that
     tokenization is bit-identical to the PyTorch reference path.
     """
-    from transformers import AutoTokenizer
-
     dest = _resolve(hf_id, dtype, out_dir)
     config = json.loads((dest / "config.json").read_text())
     _stored_dtype(dest, dtype)
@@ -98,10 +132,7 @@ def load(
     if quantize_bits is not None:
         nn.quantize(model, group_size=64, bits=quantize_bits)
     mx.eval(model.parameters())
-    try:  # self-contained MLX repos ship tokenizer files
-        tokenizer = AutoTokenizer.from_pretrained(dest)
-    except Exception:
-        tokenizer = AutoTokenizer.from_pretrained(config["hf_id"])
+    tokenizer = _load_tokenizer(dest, config["hf_id"])
     return model, tokenizer
 
 

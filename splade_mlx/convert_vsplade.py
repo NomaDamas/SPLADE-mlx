@@ -175,10 +175,16 @@ def load_vsplade(
     model.load_weights(str(dest / "weights.safetensors"))
     mx.eval(model.parameters())
     query = VSpladeQueryEncoder(np.load(dest / "query_lookup.npy"))
-    try:  # self-contained MLX repos ship processor configs
-        processor = AutoProcessor.from_pretrained(hf_id_or_dir)
-    except Exception:
-        processor = AutoProcessor.from_pretrained(config["hf_id"])
+    from . import _has_tokenizer_files
+
+    arg = Path(hf_id_or_dir)
+    if _has_tokenizer_files(dest) or (dest / "preprocessor_config.json").is_file():
+        processor_src = dest
+    elif not arg.is_dir():
+        processor_src = hf_id_or_dir
+    else:
+        processor_src = config["hf_id"]
+    processor = AutoProcessor.from_pretrained(processor_src)
     return model, query, processor
 
 
